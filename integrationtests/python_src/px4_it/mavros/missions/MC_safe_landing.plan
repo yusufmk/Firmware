@@ -14,9 +14,9 @@
         "hoverSpeed": 5,
         "items": [
             {
-                "AMSLAltAboveTerrain": 4,
-                "Altitude": 4,
-                "AltitudeMode": 0,
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 18,
+                "AltitudeMode": 1,
                 "autoContinue": true,
                 "command": 22,
                 "doJumpId": 1,
@@ -26,16 +26,16 @@
                     0,
                     0,
                     null,
-                    47.3977432,
-                    8.5456085,
-                    4
+                    47.3977394,
+                    8.5455942,
+                    18
                 ],
                 "type": "SimpleItem"
             },
             {
-                "AMSLAltAboveTerrain": 4,
-                "Altitude": 4,
-                "AltitudeMode": 0,
+                "AMSLAltAboveTerrain": null,
+                "Altitude": 18,
+                "AltitudeMode": 1,
                 "autoContinue": true,
                 "command": 16,
                 "doJumpId": 2,
@@ -45,15 +45,15 @@
                     0,
                     0,
                     null,
-                    47.39774229220339,
-                    8.545720931882045,
-                    4
+                    47.3977394,
+                    8.5456982,
+                    18
                 ],
                 "type": "SimpleItem"
             },
             {
                 "AMSLAltAboveTerrain": null,
-                "Altitude": 4,
+                "Altitude": 18,
                 "AltitudeMode": 1,
                 "autoContinue": true,
                 "command": 16,
@@ -64,15 +64,15 @@
                     0,
                     0,
                     null,
-                    47.39774320000268,
-                    8.545878517785468,
-                    4
+                    47.3977432,
+                    8.545805,
+                    18
                 ],
                 "type": "SimpleItem"
             },
             {
                 "AMSLAltAboveTerrain": null,
-                "Altitude": -1,
+                "Altitude": 0,
                 "AltitudeMode": 1,
                 "autoContinue": true,
                 "command": 21,
@@ -83,9 +83,9 @@
                     0,
                     0,
                     null,
-                    47.39774237020443,
-                    8.545877789988793,
-                    -1
+                    47.3977432,
+                    8.545804,
+                    0
                 ],
                 "type": "SimpleItem"
             }

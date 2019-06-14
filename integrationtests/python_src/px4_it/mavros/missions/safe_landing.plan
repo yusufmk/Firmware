@@ -14,9 +14,9 @@
         "hoverSpeed": 5,
         "items": [
             {
-                "AMSLAltAboveTerrain": 4,
-                "Altitude": 4,
-                "AltitudeMode": 0,
+                "AMSLAltAboveTerrain": 18,
+                "Altitude": 18,
+                "AltitudeMode": 1,
                 "autoContinue": true,
                 "command": 22,
                 "doJumpId": 1,
@@ -28,14 +28,14 @@
                     null,
                     47.3977432,
                     8.5456085,
-                    4
+                    18
                 ],
                 "type": "SimpleItem"
             },
             {
-                "AMSLAltAboveTerrain": 4,
-                "Altitude": 4,
-                "AltitudeMode": 0,
+                "AMSLAltAboveTerrain": 18,
+                "Altitude": 18,
+                "AltitudeMode": 1,
                 "autoContinue": true,
                 "command": 16,
                 "doJumpId": 2,
@@ -45,18 +45,18 @@
                     0,
                     0,
                     null,
-                    47.39774229220339,
-                    8.545720931882045,
-                    4
+                    47.397737922000374,
+                    8.54579554484252,
+                    18
                 ],
                 "type": "SimpleItem"
             },
             {
-                "AMSLAltAboveTerrain": null,
-                "Altitude": 4,
+                "AMSLAltAboveTerrain": 0,
+                "Altitude": 0,
                 "AltitudeMode": 1,
                 "autoContinue": true,
-                "command": 16,
+                "command": 21,
                 "doJumpId": 3,
                 "frame": 3,
                 "params": [
@@ -64,36 +64,17 @@
                     0,
                     0,
                     null,
-                    47.39774320000268,
-                    8.545878517785468,
-                    4
-                ],
-                "type": "SimpleItem"
-            },
-            {
-                "AMSLAltAboveTerrain": null,
-                "Altitude": -1,
-                "AltitudeMode": 1,
-                "autoContinue": true,
-                "command": 21,
-                "doJumpId": 4,
-                "frame": 3,
-                "params": [
-                    0,
-                    0,
-                    0,
-                    null,
-                    47.39774237020443,
-                    8.545877789988793,
-                    -1
+                    47.397739737599075,
+                    8.545798227048493,
+                    0
                 ],
                 "type": "SimpleItem"
             }
         ],
         "plannedHomePosition": [
-            47.3977419,
-            8.5455941,
-            489
+            47.3977421,
+            8.545594,
+            488.028
         ],
         "vehicleType": 2,
         "version": 2
