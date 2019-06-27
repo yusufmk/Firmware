@@ -50,7 +50,7 @@ px4_add_board(
 		mavlink
 		navigator
 		sensors
-		vmount
+		temperature_compensation		vmount
 
 	SYSTEMCMDS
 		bl_update

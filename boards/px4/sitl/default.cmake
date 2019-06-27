@@ -43,6 +43,7 @@ px4_add_board(
 		navigator
 		replay
 		sensors
+		temperature_compensation
 		simulator
 		vmount
 		vtol_att_control

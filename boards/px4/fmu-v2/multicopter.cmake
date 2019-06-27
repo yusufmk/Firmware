@@ -55,7 +55,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
-		vmount
+		temperature_compensation		vmount
 
 	SYSTEMCMDS
 		bl_update

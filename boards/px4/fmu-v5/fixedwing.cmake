@@ -58,7 +58,7 @@ px4_add_board(
 		mavlink
 		navigator
 		sensors
-		vmount
+		temperature_compensation		vmount
 		wind_estimator
 
 	SYSTEMCMDS

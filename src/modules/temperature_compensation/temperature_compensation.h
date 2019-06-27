@@ -46,11 +46,12 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
-#include "common.h"
-
-
-namespace sensors
+namespace temperature_compensation
 {
+
+static constexpr uint8_t GYRO_COUNT_MAX = 3;
+static constexpr uint8_t ACCEL_COUNT_MAX = 3;
+static constexpr uint8_t BARO_COUNT_MAX = 3;
 
 static_assert(GYRO_COUNT_MAX == 3,
 	      "GYRO_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
@@ -58,6 +59,8 @@ static_assert(ACCEL_COUNT_MAX == 3,
 	      "ACCEL_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
 static_assert(BARO_COUNT_MAX == 3,
 	      "BARO_COUNT_MAX must be 3 (if changed, add/remove TC_* params to match the count)");
+
+static constexpr uint8_t SENSOR_COUNT_MAX = 3;
 
 /**
  ** class TemperatureCompensation
@@ -68,7 +71,7 @@ class TemperatureCompensation
 public:
 
 	/** (re)load the parameters. Make sure to call this on startup as well */
-	int parameters_update(bool hil_enabled = false);
+	int parameters_update();
 
 	/** supply information which device_id matches a specific uORB topic_instance
 	 *  (needed if a system has multiple sensors of the same type)
