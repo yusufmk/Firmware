@@ -32,14 +32,18 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__temperature_compensation
+	MODULE modules__TemperatureCompensation
 	MAIN temperature_compensation
 	COMPILE_FLAGS
 		-Wno-error=unused-but-set-variable
 	STACK_MAIN 1500
 	SRCS
-		voted_sensors_update.cpp
-		temperature_compensation.cpp
+		TemperatureCompensationModule.cpp
+		TemperatureCompensation.cpp
+		temperature_calibration/accel.cpp
+		temperature_calibration/baro.cpp
+		temperature_calibration/gyro.cpp
+		temperature_calibration/task.cpp
 	DEPENDS
 		mathlib
 	)

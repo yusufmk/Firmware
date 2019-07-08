@@ -42,10 +42,6 @@ px4_add_module(
 		set_leds.cpp
 		status_display.cpp
 		subscriber_handler.cpp
-		temperature_calibration/accel.cpp
-		temperature_calibration/baro.cpp
-		temperature_calibration/gyro.cpp
-		temperature_calibration/task.cpp
 	DEPENDS
 		modules__uORB
 	)

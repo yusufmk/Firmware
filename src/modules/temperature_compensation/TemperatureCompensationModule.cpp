@@ -37,19 +37,21 @@
  * @author Beat Kueng <beat-kueng@gmx.net>
  */
 
-#include "voted_sensors_update.h"
+#include "TemperatureCompensationModule.h"
+
+#include "temperature_calibration/temperature_calibration.h"
 
 #include <systemlib/mavlink_log.h>
 
 using namespace temperature_compensation;
 using namespace time_literals;
 
-VotedSensorsUpdate::VotedSensorsUpdate() :
+TemperatureCompensationModule::TemperatureCompensationModule() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(px4::wq_configurations::lp_default),
 	_loop_perf(perf_alloc(PC_ELAPSED, "temperature_compensation"))
 {
-	// initialise the publication variables
+	// Initialize the publication variables
 	for (unsigned i = 0; i < 3; i++) {
 		_corrections.gyro_scale_0[i] = 1.0f;
 		_corrections.accel_scale_0[i] = 1.0f;
@@ -64,25 +66,16 @@ VotedSensorsUpdate::VotedSensorsUpdate() :
 	_corrections.baro_scale_2 = 1.0f;
 }
 
-VotedSensorsUpdate::~VotedSensorsUpdate()
+TemperatureCompensationModule::~TemperatureCompensationModule()
 {
 	perf_free(_loop_perf);
 }
 
-bool
-VotedSensorsUpdate::init()
+void TemperatureCompensationModule::parameters_update()
 {
-	ScheduleOnInterval(1_s);
-
-	return true;
-}
-
-void VotedSensorsUpdate::parameters_update()
-{
-	/* temperature compensation */
 	_temperature_compensation.parameters_update();
 
-	// gyro
+	// Gyro
 	for (uint8_t uorb_index = 0; uorb_index < GYRO_COUNT_MAX; uorb_index++) {
 		sensor_gyro_s report;
 
@@ -99,7 +92,7 @@ void VotedSensorsUpdate::parameters_update()
 		}
 	}
 
-	// accel
+	// Accel
 	for (uint8_t uorb_index = 0; uorb_index < ACCEL_COUNT_MAX; uorb_index++) {
 		sensor_accel_s report;
 
@@ -117,7 +110,7 @@ void VotedSensorsUpdate::parameters_update()
 		}
 	}
 
-	// baro
+	// Baro
 	for (uint8_t uorb_index = 0; uorb_index < BARO_COUNT_MAX; uorb_index++) {
 		sensor_baro_s report;
 
@@ -136,20 +129,20 @@ void VotedSensorsUpdate::parameters_update()
 	}
 }
 
-void VotedSensorsUpdate::accel_poll()
+void TemperatureCompensationModule::accel_poll()
 {
 	float *offsets[] = {_corrections.accel_offset_0, _corrections.accel_offset_1, _corrections.accel_offset_2 };
 	float *scales[] = {_corrections.accel_scale_0, _corrections.accel_scale_1, _corrections.accel_scale_2 };
 
+	// For each accel instance
 	for (uint8_t uorb_index = 0; uorb_index < ACCEL_COUNT_MAX; uorb_index++) {
 		sensor_accel_s report;
 
+		// Grab temperature from report
 		if (_accel_subs[uorb_index].update(&report)) {
 
-			matrix::Vector3f accel_data = matrix::Vector3f(report.x, report.y, report.z);
-
-			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_accel(uorb_index, accel_data, report.temperature, offsets[uorb_index],
+			// Update the scales and offsets and mark for publication if they've changed
+			if (_temperature_compensation.update_scales_and_offsets_accel(uorb_index, report.temperature, offsets[uorb_index],
 					scales[uorb_index]) == 2) {
 				_corrections_changed = true;
 			}
@@ -157,20 +150,20 @@ void VotedSensorsUpdate::accel_poll()
 	}
 }
 
-void VotedSensorsUpdate::gyro_poll()
+void TemperatureCompensationModule::gyro_poll()
 {
 	float *offsets[] = {_corrections.gyro_offset_0, _corrections.gyro_offset_1, _corrections.gyro_offset_2 };
 	float *scales[] = {_corrections.gyro_scale_0, _corrections.gyro_scale_1, _corrections.gyro_scale_2 };
 
+	// For each gyro instance
 	for (uint8_t uorb_index = 0; uorb_index < GYRO_COUNT_MAX; uorb_index++) {
 		sensor_gyro_s report;
 
+		// Grab temperature from report
 		if (_gyro_subs[uorb_index].update(&report)) {
 
-			matrix::Vector3f gyro_rate = matrix::Vector3f(report.x, report.y, report.z);
-
-			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_gyro(uorb_index, gyro_rate, report.temperature, offsets[uorb_index],
+			// Update the scales and offsets and mark for publication if they've changed
+			if (_temperature_compensation.update_scales_and_offsets_gyro(uorb_index, report.temperature, offsets[uorb_index],
 					scales[uorb_index]) == 2) {
 				_corrections_changed = true;
 			}
@@ -178,21 +171,20 @@ void VotedSensorsUpdate::gyro_poll()
 	}
 }
 
-void VotedSensorsUpdate::baro_poll()
+void TemperatureCompensationModule::baro_poll()
 {
 	float *offsets[] = {&_corrections.baro_offset_0, &_corrections.baro_offset_1, &_corrections.baro_offset_2 };
 	float *scales[] = {&_corrections.baro_scale_0, &_corrections.baro_scale_1, &_corrections.baro_scale_2 };
 
+	// For each baro instance
 	for (uint8_t uorb_index = 0; uorb_index < BARO_COUNT_MAX; uorb_index++) {
 		sensor_baro_s report;
 
+		// Grab temperature from report
 		if (_baro_subs[uorb_index].update(&report)) {
 
-			// Convert from millibar to Pa
-			float corrected_pressure = 100.0f * report.pressure;
-
-			// handle temperature compensation
-			if (_temperature_compensation.apply_corrections_baro(uorb_index, corrected_pressure, report.temperature,
+			// Update the scales and offsets and mark for publication if they've changed
+			if (_temperature_compensation.update_scales_and_offsets_baro(uorb_index, report.temperature,
 					offsets[uorb_index], scales[uorb_index]) == 2) {
 				_corrections_changed = true;
 			}
@@ -200,25 +192,41 @@ void VotedSensorsUpdate::baro_poll()
 	}
 }
 
-void VotedSensorsUpdate::Run()
+void TemperatureCompensationModule::Run()
 {
 	perf_begin(_loop_perf);
 
-	/* Check if any parameter has changed */
+	// Check if user has requested to run the calibration routine
+	if (_start_calibration && !_is_calibrating)
+	{
+		bool accel = _is_accel_calibration;
+		bool baro = _is_baro_calibration;
+		bool gyro = _is_gyro_calibration;
+
+		// Kicks off temperature calibration in a new task
+		int ret = run_temperature_calibration(accel, baro, gyro);
+
+		if (ret == PX4_OK)
+		{
+			// Calibration has been started -- module may resume
+			_start_calibration = false;
+			_is_calibrating = true;
+		}
+	}
+
+	// Check if any parameter has changed
 	parameter_update_s update;
 
 	if (_params_sub.update(&update)) {
-		/* read from param to clear updated flag */
-
+		// Read from param to clear updated flag
 		parameters_update();
-		//updateParams();
 	}
 
 	accel_poll();
 	gyro_poll();
 	baro_poll();
 
-	// publish sensor corrections if necessary
+	// Publish sensor corrections if necessary
 	if (_corrections_changed) {
 		_corrections.timestamp = hrt_absolute_time();
 
@@ -235,9 +243,9 @@ void VotedSensorsUpdate::Run()
 	perf_end(_loop_perf);
 }
 
-int VotedSensorsUpdate::task_spawn(int argc, char *argv[])
+int TemperatureCompensationModule::task_spawn(int argc, char *argv[])
 {
-	VotedSensorsUpdate *instance = new VotedSensorsUpdate();
+	TemperatureCompensationModule *instance = new TemperatureCompensationModule();
 
 	if (instance) {
 		_object.store(instance);
@@ -258,19 +266,76 @@ int VotedSensorsUpdate::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int VotedSensorsUpdate::custom_command(int argc, char *argv[])
+bool TemperatureCompensationModule::init()
 {
-	return print_usage("unknown command");
+	ScheduleOnInterval(1_s);
+
+	return true;
 }
 
-int VotedSensorsUpdate::print_status()
+int TemperatureCompensationModule::custom_command(int argc, char *argv[])
+{
+	if (!strcmp(argv[0], "temperature_calibration")) {
+
+		if (!is_running()) {
+			PX4_ERR("background task not running");
+
+			return PX4_ERROR;
+		}
+
+		bool gyro_calib = false, accel_calib = false, baro_calib = false;
+		bool calib_all = true;
+		int myoptind = 1;
+		int ch;
+		const char *myoptarg = nullptr;
+
+		while ((ch = px4_getopt(argc, argv, "abg", &myoptind, &myoptarg)) != EOF) {
+			switch (ch) {
+			case 'a':
+				accel_calib = true;
+				calib_all = false;
+				break;
+
+			case 'b':
+				baro_calib = true;
+				calib_all = false;
+				break;
+
+			case 'g':
+				gyro_calib = true;
+				calib_all = false;
+				break;
+
+			default:
+				print_usage("unrecognized flag");
+
+				return PX4_ERROR;
+			}
+		}
+
+		// Set flags to indicate to module that it is now in calibration mode
+		_is_accel_calibration = accel_calib || calib_all;
+		_is_baro_calibration = baro_calib || calib_all;
+		_is_gyro_calibration = gyro_calib || calib_all;
+		_start_calibration = _is_accel_calibration || _is_baro_calibration || _is_gyro_calibration;
+
+		return PX4_OK;
+
+	} else {
+		print_usage("unrecognized command");
+
+		return PX4_ERROR;
+	}
+}
+
+int TemperatureCompensationModule::print_status()
 {
 	_temperature_compensation.print_status();
 
 	return PX4_OK;
 }
 
-int VotedSensorsUpdate::print_usage(const char *reason)
+int TemperatureCompensationModule::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -279,30 +344,19 @@ int VotedSensorsUpdate::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-The temperature compensation module is central to the whole system. It takes low-level output from drivers, turns
-it into a more usable form, and publishes it for the rest of the system.
-
-The provided functionality includes:
-- Read the output from the sensor drivers (`sensor_gyro`, etc.).
-  If there are multiple of the same type, do voting and failover handling.
-  Then apply the board rotation and temperature calibration (if enabled). And finally publish the data; one of the
-  topics is `sensor_combined`, used by many parts of the system.
-- Do RC channel mapping: read the raw input channels (`input_rc`), then apply the calibration, map the RC channels
-  to the configured channels & mode switches, low-pass filter, and then publish as `rc_channels` and
-  `manual_control_setpoint`.
-- Read the output from the ADC driver (via ioctl interface) and publish `battery_status`.
-- Make sure the sensor drivers get the updated calibration parameters (scale & offset) when the parameters change or
-  on startup. The sensor drivers use the ioctl interface for parameter updates. For this to work properly, the
-  sensor drivers must already be running when `sensors` is started.
-- Do preflight sensor consistency checks and publish the `sensor_preflight` topic.
-
-### Implementation
-It runs in its own thread and polls on the currently selected gyro topic.
+The temperature compensation module allows all of the gyro(s), accel(s), and baro(s) in the system to be temperature compensated. The
+module monitors the data coming from the sensors and updates the associated sensor_thermal_cal topic whenever a change in temperature
+is detected. The module can also be configured to perform the coeffecient calculation routine at next boot, which allows the thermal
+calibration coeffecients to be calculated while the vehicle undergoes a temperature cycle.
 
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("temperature_compensation", "system");
-	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the module, which monitors the sensors and updates the sensor_thermal_cal topic");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("temperature_calibration", "Run temperature calibration process");
+	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -312,5 +366,5 @@ extern "C" __EXPORT int temperature_compensation_main(int argc, char *argv[]);
 
 int temperature_compensation_main(int argc, char *argv[])
 {
-	return VotedSensorsUpdate::main(argc, argv);
+	return TemperatureCompensationModule::main(argc, argv);
 }

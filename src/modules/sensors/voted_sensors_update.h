@@ -265,8 +265,7 @@ private:
 
 	/* sensor thermal compensation */
 	uORB::Subscription _corrections_sub{ORB_ID(sensor_correction)};
-	sensor_correction_s _corrections{}; /**< struct containing the sensor corrections to be published to the uORB*/
-	bool _corrections_changed = false;
+	sensor_correction_s _corrections{}; /**< struct containing the sensor corrections to be subscribed from the uORB*/
 
 	/* sensor selection publication */
 	struct sensor_selection_s _selection = {}; /**< struct containing the sensor selection to be published to the uORB*/

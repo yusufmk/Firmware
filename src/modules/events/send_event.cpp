@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include "send_event.h"
-#include "temperature_calibration/temperature_calibration.h"
 
 #include <math.h>
 
@@ -159,37 +158,8 @@ void SendEvent::process_commands()
 
 	orb_copy(ORB_ID(vehicle_command), _subscriber_handler.get_vehicle_command_sub(), &cmd);
 
-	bool got_temperature_calibration_command = false, accel = false, baro = false, gyro = false;
-
-	switch (cmd.command) {
-	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
-		if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
-			gyro = true;
-			got_temperature_calibration_command = true;
-		}
-
-		if ((int)(cmd.param5) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
-			accel = true;
-			got_temperature_calibration_command = true;
-		}
-
-		if ((int)(cmd.param7) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION) {
-			baro = true;
-			got_temperature_calibration_command = true;
-		}
-
-		if (got_temperature_calibration_command) {
-			if (run_temperature_calibration(accel, baro, gyro) == 0) {
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-
-			} else {
-				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
-			}
-		}
-
-		break;
-	}
-
+	// TODO: do something with vehicle commands
+	// TODO: what is this modules purpose?
 }
 
 void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
@@ -221,17 +191,13 @@ int SendEvent::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 Background process running periodically on the LP work queue to perform housekeeping tasks.
-It is currently only responsible for temperature calibration and tone alarm on RC Loss.
+It is currently only responsible for tone alarm on RC Loss.
 
 The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, etc.).
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("send_event", "system");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("temperature_calibration", "Run temperature calibration process");
-	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -239,58 +205,8 @@ The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, e
 
 int SendEvent::custom_command(int argc, char *argv[])
 {
-	if (!strcmp(argv[0], "temperature_calibration")) {
-
-		if (!is_running()) {
-			PX4_ERR("background task not running");
-			return -1;
-		}
-
-		bool gyro_calib = false, accel_calib = false, baro_calib = false;
-		bool calib_all = true;
-		int myoptind = 1;
-		int ch;
-		const char *myoptarg = nullptr;
-
-		while ((ch = px4_getopt(argc, argv, "abg", &myoptind, &myoptarg)) != EOF) {
-			switch (ch) {
-			case 'a':
-				accel_calib = true;
-				calib_all = false;
-				break;
-
-			case 'b':
-				baro_calib = true;
-				calib_all = false;
-				break;
-
-			case 'g':
-				gyro_calib = true;
-				calib_all = false;
-				break;
-
-			default:
-				print_usage("unrecognized flag");
-				return 1;
-			}
-		}
-
-		vehicle_command_s vcmd = {};
-		vcmd.timestamp = hrt_absolute_time();
-		vcmd.param1 = (float)((gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
-		vcmd.param2 = NAN;
-		vcmd.param3 = NAN;
-		vcmd.param4 = NAN;
-		vcmd.param5 = ((accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : (double)NAN);
-		vcmd.param6 = (double)NAN;
-		vcmd.param7 = (float)((baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
-		vcmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
-
-		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		print_usage("unrecognized command");
-	}
+	// TODO: what is my purpose?
+	print_usage("unrecognized command");
 
 	return 0;
 }

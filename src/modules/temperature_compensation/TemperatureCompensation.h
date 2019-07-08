@@ -80,7 +80,6 @@ public:
 	int set_sensor_id_accel(uint32_t device_id, int topic_instance);
 	int set_sensor_id_baro(uint32_t device_id, int topic_instance);
 
-
 	/**
 	 * Apply Thermal corrections to gyro (& other) sensor data.
 	 * @param topic_instance uORB topic instance
@@ -93,13 +92,11 @@ public:
 	 *         1: corrections applied but no changes to offsets & scales,
 	 *         2: corrections applied and offsets & scales updated
 	 */
-	int apply_corrections_gyro(int topic_instance, matrix::Vector3f &sensor_data, float temperature, float *offsets,
-				   float *scales);
+	int update_scales_and_offsets_gyro(int topic_instance, float temperature, float *offsets, float *scales);
 
-	int apply_corrections_accel(int topic_instance, matrix::Vector3f &sensor_data, float temperature, float *offsets,
-				    float *scales);
+	int update_scales_and_offsets_accel(int topic_instance, float temperature, float *offsets, float *scales);
 
-	int apply_corrections_baro(int topic_instance, float &sensor_data, float temperature, float *offsets, float *scales);
+	int update_scales_and_offsets_baro(int topic_instance, float temperature, float *offsets, float *scales);
 
 	/** output current configuration status to console */
 	void print_status();

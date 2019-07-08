@@ -58,25 +58,25 @@
 #include <uORB/topics/parameter_update.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
 
-#include "temperature_compensation.h"
+#include "TemperatureCompensation.h"
 
 namespace temperature_compensation
 {
 
 /**
- ** class VotedSensorsUpdate
+ ** class TemperatureCompensationModule
  */
-class VotedSensorsUpdate : public ModuleBase<VotedSensorsUpdate>, public ModuleParams, public px4::ScheduledWorkItem
+class TemperatureCompensationModule : public ModuleBase<TemperatureCompensationModule>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	VotedSensorsUpdate();
-	~VotedSensorsUpdate();
+	TemperatureCompensationModule();
+	~TemperatureCompensationModule();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static VotedSensorsUpdate *instantiate(int argc, char *argv[]);
+	static TemperatureCompensationModule *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -89,6 +89,9 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
+	/**
+	 * Initializes scheduling on work queue.
+	 */
 	bool init();
 
 private:
@@ -146,6 +149,19 @@ private:
 
 	bool _corrections_changed{true};
 
+protected:
+	// Volatile because threads
+	static volatile bool _start_calibration;
+	static volatile bool _is_accel_calibration;
+	static volatile bool _is_baro_calibration;
+	static volatile bool _is_gyro_calibration;
+	volatile bool _is_calibrating{false};
 };
+
+volatile bool TemperatureCompensationModule::_start_calibration = false;
+volatile bool TemperatureCompensationModule::_is_accel_calibration = false;
+volatile bool TemperatureCompensationModule::_is_baro_calibration = false;
+volatile bool TemperatureCompensationModule::_is_gyro_calibration = false;
+
 
 } // namespace temperature_compensation
