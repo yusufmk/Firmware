@@ -173,9 +173,9 @@ void FlightTaskAutotuneVel::_measureUltimatePeriod()
 void FlightTaskAutotuneVel::_computeControlGains()
 {
 	// Compute Kp, Ki and Kd using robust Ziegler-Nichols rules
-	float kp = 0.3375f * _ku;
+	float kp = 0.3f * _ku;
 	float ki = 0.3f * _ku / _period_u;
-	float kd = _ku * _period_u * 0.0375f;
+	float kd = 0.0375f * _ku * _period_u;
 	printf("Kp = %.3f\tKi =%.3f\tKd = %.3f\n", (double)kp, (double)ki, (double)kd);
 
 	if (kp > 0.f && kp < 1.f && ki > 0.f && ki < 4.f && kd > 0.f && kd < 0.1f) {
