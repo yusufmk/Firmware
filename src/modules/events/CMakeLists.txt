@@ -41,7 +41,6 @@ px4_add_module(
 		send_event.cpp
 		set_leds.cpp
 		status_display.cpp
-		subscriber_handler.cpp
 	DEPENDS
 		modules__uORB
 	)
