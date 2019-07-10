@@ -54,7 +54,7 @@
  * board, the BOOT0 pin is at ground so by default, the STM32F745VGT6 will
  * boot from address 0x0020:0000 in ITCM FLASH.
  *
- * The STM32F765IIT6 also has 320 KiB of data SRAM (in addition to ITCM SRAM).
+ * The STM32F745VGT6 also has 320 KiB of data SRAM (in addition to ITCM SRAM).
  * SRAM is split up into three blocks:
  *
  *   1)  64 KiB of DTCM SRM beginning at address 0x2000:0000
@@ -66,6 +66,8 @@
  * the 0x0800:0000 address range.
  *
  * Bootloader reserves the first 32K bank.
+ * The next 2 32K sectors are reserved for parameters.
+ *
  */
 
 MEMORY

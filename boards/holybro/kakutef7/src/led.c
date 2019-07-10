@@ -91,14 +91,19 @@ __EXPORT void led_init(void)
 static void phy_set_led(int led, bool state)
 {
 	/* Drive Low to switch on */
-
-	stm32_gpiowrite(g_ledmap[led], !state);
+	if (led == 0) {
+		stm32_gpiowrite(g_ledmap[led], !state);
+	}
 }
 
 static bool phy_get_led(int led)
 {
 	/* If Low it is on */
-	return !stm32_gpioread(g_ledmap[led]);
+	if (led == 0) {
+		return !stm32_gpioread(g_ledmap[led]);
+	}
+
+	return false;
 }
 
 __EXPORT void led_on(int led)
@@ -116,100 +121,3 @@ __EXPORT void led_toggle(int led)
 	phy_set_led(xlat(led), !phy_get_led(xlat(led)));
 }
 
-#ifdef CONFIG_ARCH_LEDS
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: board_autoled_initialize
- ****************************************************************************/
-
-void board_autoled_initialize(void)
-{
-	led_init();
-}
-
-/****************************************************************************
- * Name: board_autoled_on
- ****************************************************************************/
-
-void board_autoled_on(int led)
-{
-	if (!nuttx_owns_leds) {
-		return;
-	}
-
-	switch (led) {
-	default:
-		break;
-
-	case LED_HEAPALLOCATE:
-		phy_set_led(BOARD_LED_BLUE, true);
-		break;
-
-	case LED_IRQSENABLED:
-		phy_set_led(BOARD_LED_BLUE, false);
-		break;
-
-	case LED_STACKCREATED:
-		phy_set_led(BOARD_LED_GREEN, true);
-		break;
-
-	case LED_INIRQ:
-		phy_set_led(BOARD_LED_BLUE, true);
-		break;
-
-	case LED_SIGNAL:
-		break;
-
-	case LED_ASSERTION:
-		phy_set_led(BOARD_LED_BLUE, true);
-		break;
-
-	case LED_PANIC:
-		break;
-
-	case LED_IDLE : /* IDLE */
-		break;
-	}
-}
-
-/****************************************************************************
- * Name: board_autoled_off
- ****************************************************************************/
-
-void board_autoled_off(int led)
-{
-	if (!nuttx_owns_leds) {
-		return;
-	}
-
-	switch (led) {
-	default:
-		break;
-
-	case LED_SIGNAL:
-		phy_set_led(BOARD_LED_GREEN, false);
-		break;
-
-	case LED_INIRQ:
-		phy_set_led(BOARD_LED_BLUE, false);
-		break;
-
-	case LED_ASSERTION:
-		phy_set_led(BOARD_LED_RED, false);
-		phy_set_led(BOARD_LED_BLUE, false);
-		break;
-
-	case LED_PANIC:
-		phy_set_led(BOARD_LED_RED, false);
-		break;
-
-	case LED_IDLE : /* IDLE */
-		phy_set_led(BOARD_LED_RED, false);
-		break;
-	}
-}
-
-#endif /* CONFIG_ARCH_LEDS */

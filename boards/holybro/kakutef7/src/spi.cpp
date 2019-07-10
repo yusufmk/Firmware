@@ -208,33 +208,4 @@ __EXPORT uint8_t stm32_spi4status(FAR struct spi_dev_s *dev, uint32_t devid)
 
 __EXPORT void board_spi_reset(int ms)
 {
-	// disable SPI bus
-	for (auto cs : spi1selects_gpio) {
-		stm32_configgpio(_PIN_OFF(cs));
-	}
-
-	stm32_configgpio(GPIO_SPI4_SCK_OFF);
-	stm32_configgpio(GPIO_SPI4_MISO_OFF);
-	stm32_configgpio(GPIO_SPI4_MOSI_OFF);
-
-
-#if BOARD_USE_DRDY
-	stm32_configgpio(GPIO_DRDY_OFF_SPI4_DRDY1_ICM20689);
-#endif
-
-	usleep(ms * 1000);
-	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
-
-	/* reconfigure the SPI pins */
-	for (auto cs : spi1selects_gpio) {
-		stm32_configgpio(cs);
-	}
-
-	stm32_configgpio(GPIO_SPI4_SCK);
-	stm32_configgpio(GPIO_SPI4_MISO);
-	stm32_configgpio(GPIO_SPI4_MOSI);
-
-#if BOARD_USE_DRDY
-	stm32_configgpio(GPIO_SPI4_DRDY1_ICM20689);
-#endif
 }
