@@ -45,7 +45,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 
-
 int YusufModule::print_status()
 {
 	PX4_INFO("Running");
@@ -138,6 +137,9 @@ YusufModule *YusufModule::instantiate(int argc, char *argv[])
 YusufModule::YusufModule(int example_param, bool example_flag)
 	: ModuleParams(nullptr)
 {
+	_benim_mesaj.timestamp = 12345;
+	_benim_mesaj.mesaj_val1 = 0;
+	_benim_mesaj.mesaj_val2 = 1;
 	_p1_handle = param_find("YUSUF_PARAM_1");
 	myParameters_update();
 }
@@ -154,7 +156,7 @@ void YusufModule::run()
 	// initialize parameters
 	// int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	// parameters_update(parameter_update_sub, true);
-
+	param_set(_p1_handle, &_p1);
 	// _benim_mesaj.param_1 = _p1;
 	// _benim_mesaj.param_2 = _p1;
 
@@ -180,15 +182,21 @@ void YusufModule::run()
 			struct sensor_combined_s sensor_combined;
 			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined);
 			// TODO: do something with the data...
-			_p1 += 1;
-			param_set(_p1_handle, &_p1);
-			PX4_INFO("bunu ben yazdiriyorumm param_1: %d", _p1);
+			// _p1 += 1;
+			// param_set(_p1_handle, &_p1);
+
+			// PX4_INFO("param_1: %d, mesaj_val1: %d, accel_x: %f", _p1, _benim_mesaj.mesaj_val1, (double)sensor_combined.accelerometer_m_s2[0]);
+			_benim_mesaj.timestamp = hrt_absolute_time();
+			int instance;
+			orb_publish_auto(ORB_ID(yusuf_message),
+				&_yusuf_message_pub, &_benim_mesaj, &instance, ORB_PRIO_DEFAULT);
+			// _yusuf_message_pub.publish(_benim_mesaj);
 		}
 
 
 		// parameters_update(parameter_update_sub);
 		myParameters_update();
-		px4_usleep(1000000);
+		px4_usleep(100000);
 	}
 
 	orb_unsubscribe(sensor_combined_sub);
@@ -206,14 +214,17 @@ void YusufModule::parameters_update(int parameter_update_sub, bool force)
 		orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_upd);
 	}
 
-	if (force || updated) {
+	if (force || updated)
+	{
 		updateParams();
+
 	}
 }
 
 int YusufModule::myParameters_update()
 {
 	param_get(_p1_handle, &_p1);
+	_benim_mesaj.mesaj_val1 = _p1;
 
 	return PX4_OK;
 }

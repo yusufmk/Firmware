@@ -37,6 +37,13 @@
 #include <px4_module_params.h>
 #include <uORB/topics/yusuf_message.h>
 
+// publications
+#include <uORB/Publication.hpp>
+
+// subscriptions
+#include <uORB/Subscription.hpp>
+
+
 extern "C" __EXPORT int tt_yusuf_main(int argc, char *argv[]);
 
 
@@ -67,11 +74,13 @@ public:
 
 private:
 	/* burada subscription ya da subscriptiondata cinsinden fieldlar tanımlanacak*/
+	// uORB::SubscriptionData<yusuf_message_s>		_yusuf_message_sub{ORB_ID(__orb_yusuf_message)};
 
 	/* burada publication ya da publicationdata cinsinden fieldlar tanımlanacak*/
+	// uORB::Publication<yusuf_message_s>		_yusuf_message_pub{ORB_ID(yusuf_message)};
+	orb_advert_t _yusuf_message_pub{nullptr};
 
-
-	yusuf_message_s _benim_mesaj;
+	struct yusuf_message_s _benim_mesaj{};
 	/**
 	 * Check for parameter changes and update them if needed.
 	 * @param parameter_update_sub uorb subscription to parameter_update
