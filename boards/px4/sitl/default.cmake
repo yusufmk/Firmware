@@ -48,6 +48,7 @@ px4_add_board(
 		vtol_att_control
 		wind_estimator
 		tt_yusuf
+		tt2
 
 	SYSTEMCMDS
 		#bl_update
