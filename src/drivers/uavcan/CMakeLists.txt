@@ -98,6 +98,9 @@ px4_add_module(
 		sensors/mag.cpp
 		sensors/baro.cpp
 
+		# Other
+		other/tt_device.cpp
+
 	DEPENDS
 		mixer
 		version
