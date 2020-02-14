@@ -139,8 +139,7 @@ Tt2Module::Tt2Module(int example_param, bool example_flag) : ModuleParams(nullpt
 	_benim_mesaj2.timestamp = 12345;
 	_benim_mesaj2.mesaj_val1 = 0;
 	_benim_mesaj2.mesaj_val2 = 1;
-	// _p1_handle = param_find("YUSUF_PARAM_1");
-	// myParameters_update();
+	_p1_handle = param_find("YUSUF_PARAM_1");
 }
 
 void Tt2Module::run()
@@ -183,7 +182,10 @@ void Tt2Module::run()
 			// TODO: do something with the data...
 
 			_yusuf_message_sub.copy(&_benim_mesaj2);
-			PX4_INFO("mesaj_val1: %d, accel_x: %f", _benim_mesaj2.mesaj_val1, (double)sensor_combined.accelerometer_m_s2[0]);
+			_p1 = _benim_mesaj2.mesaj_val1;
+			param_set(_p1_handle, &_p1);
+
+			PX4_INFO("mesaj_val1: %d, _p1: %d, accel_x: %f", _benim_mesaj2.mesaj_val1, _p1, (double)sensor_combined.accelerometer_m_s2[0]);
 
 
 		}

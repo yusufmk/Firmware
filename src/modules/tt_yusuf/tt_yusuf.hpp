@@ -93,6 +93,9 @@ private:
 	int32_t _p1;
 	param_t _p1_handle;
 
+	int32_t _p2;
+	param_t _p2_handle;
+
 	// DEFINE_PARAMETERS(
 	// 	(ParamInt<px4::params::YUSUF_PARAM_1>) _param_1,
 	// 	(ParamInt<px4::params::YUSUF_PARAM_2>) _param_2

@@ -11,7 +11,7 @@ px4_add_board(
 	IO px4_io-v2_default
 	#TESTING
 	CONSTRAINED_FLASH
-	#UAVCAN_INTERFACES 2
+	UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
@@ -26,9 +26,9 @@ px4_add_board(
 		#camera_capture
 		#camera_trigger
 		#differential_pressure # all available differential pressure drivers
-		differential_pressure/ms4525
+		# differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
-		distance_sensor/ll40ls
+		# distance_sensor/ll40ls
 		#distance_sensor/sf0x
 		gps
 		#heater
@@ -47,11 +47,11 @@ px4_add_board(
 		magnetometer/hmc5883
 		#mkblctrl
 		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
+		# optical_flow/px4flow
 		#pca9685
 		#protocol_splitter
 		#pwm_input
-		pwm_out_sim
+		# pwm_out_sim
 		px4fmu
 		px4io
 		#roboclaw
@@ -62,32 +62,34 @@ px4_add_board(
 		#telemetry # all available telemetry drivers
 		#test_ppm
 		tone_alarm
-		#uavcan
+		uavcan
 
 	MODULES
 		#attitude_estimator_q
-		camera_feedback
+		# camera_feedback
 		commander
 		dataman
 		ekf2
 		events
-		fw_att_control
-		fw_pos_control_l1
+		# fw_att_control
+		# fw_pos_control_l1
 		#gnd_att_control
 		#gnd_pos_control
 		land_detector
 		#landing_target_estimator
 		load_mon
 		#local_position_estimator
-		logger
+		# logger
 		mavlink
-		mc_att_control
-		mc_pos_control
+		# mc_att_control
+		# mc_pos_control
 		navigator
 		sensors
-		vmount
-		vtol_att_control
+		# vmount
+		# vtol_att_control
 		#wind_estimator
+		tt_yusuf
+		tt2
 
 	SYSTEMCMDS
 		bl_update

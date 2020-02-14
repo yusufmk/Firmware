@@ -85,6 +85,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
+	_ttDevice(_node),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "uavcan control latency")),
 	_master_timer(_node),
 	_setget_response(0)
@@ -663,6 +664,18 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		PX4_INFO("sensor bridge '%s' init ok", br->get_name());
 	}
 
+	// init other devices
+	ret = _ttDevice.init();
+	if (ret < 0) {
+		PX4_ERR("cannot init ttDevice '%s' (%d)", _ttDevice.get_name(), ret);
+		return ret;
+	}
+	else
+	{
+		PX4_INFO("ttDevice basariyla baslatildi.");
+	}
+
+
 	/*  Start the Node   */
 	return _node.start();
 }
@@ -1230,6 +1243,11 @@ UavcanNode::print_info()
 		br->print_status();
 		printf("\n");
 	}
+
+	// other devices
+	printf("Other device '%s':\n", _ttDevice.get_name());
+	_ttDevice.print_status();
+	printf("\n");
 
 	// Printing all nodes that are online
 	std::printf("Online nodes (Node ID, Health, Mode):\n");

@@ -69,6 +69,8 @@
 #include "uavcan_servers.hpp"
 #include "allocator.hpp"
 
+#include "other/tt_device.hpp"
+
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 
 // we add two to allow for actuator_direct and busevent
@@ -190,6 +192,8 @@ private:
 	uavcan::NodeStatusMonitor	_node_status_monitor;
 
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
+
+	TtDevice			_ttDevice;
 
 	MixerGroup			*_mixers = nullptr;
 	ITxQueueInjector		*_tx_injector;

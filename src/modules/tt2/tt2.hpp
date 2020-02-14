@@ -90,8 +90,8 @@ private:
 
 	// int myParameters_update();
 
-	// int32_t _p1;
-	// param_t _p1_handle;
+	int32_t _p1;
+	param_t _p1_handle;
 
 	// DEFINE_PARAMETERS(
 	// 	(ParamInt<px4::params::YUSUF_PARAM_1>) _param_1,

@@ -141,6 +141,7 @@ YusufModule::YusufModule(int example_param, bool example_flag)
 	_benim_mesaj.mesaj_val1 = 0;
 	_benim_mesaj.mesaj_val2 = 1;
 	_p1_handle = param_find("YUSUF_PARAM_1");
+	_p2_handle = param_find("YUSUF_PARAM_2");
 	myParameters_update();
 }
 
@@ -157,6 +158,8 @@ void YusufModule::run()
 	// int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	// parameters_update(parameter_update_sub, true);
 	param_set(_p1_handle, &_p1);
+	param_set(_p2_handle, &_p2);
+
 	// _benim_mesaj.param_1 = _p1;
 	// _benim_mesaj.param_2 = _p1;
 
@@ -224,7 +227,10 @@ void YusufModule::parameters_update(int parameter_update_sub, bool force)
 int YusufModule::myParameters_update()
 {
 	param_get(_p1_handle, &_p1);
+	param_get(_p2_handle, &_p2);
+
 	_benim_mesaj.mesaj_val1 = _p1;
+	_benim_mesaj.mesaj_val2 = _p2;
 
 	return PX4_OK;
 }
