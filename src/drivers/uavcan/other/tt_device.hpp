@@ -16,6 +16,27 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/safety/ArmingStatus.hpp>
 
+#include <px4_defines.h>
+
+class RxFrameListener : public uavcan::IRxFrameListener
+{
+public:
+	~RxFrameListener()
+ 	{
+
+ 	}
+
+	void handleRxFrame(const uavcan::CanRxFrame& frame,
+		uavcan::CanIOFlags flags) override
+    	{
+
+		PX4_INFO("frame.id:%d, frame.dlc:%d, frame.data[0]:%d, frame.data[1]:%d, frame.data[2]:%d, frame.data[3]:%d, frame.data[4]:%d, frame.data[5]:%d, frame.data[6]:%d, frame.data[7]:%d",
+			frame.id, frame.dlc, frame.data[0],
+			frame.data[1], frame.data[2], frame.data[3], frame.data[4], frame.data[5],
+			frame.data[6], frame.data[7]);
+	}
+};
+
 class TtDevice
 {
 	static constexpr unsigned ORB_TO_UAVCAN_FREQUENCY_HZ = 1;
@@ -72,4 +93,13 @@ private:
 
 	param_t _p2_handle;
 	int32_t _p2;
+
+	RxFrameListener _myFrameListener;
+	uint8_t _frameId;
+	uint8_t _sobalak;
+
+
+
 };
+
+

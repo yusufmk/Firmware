@@ -10,6 +10,8 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 
+// #include "blah.hpp"
+
 const char *const TtDevice::NAME = "redundantUKB";
 
 TtDevice::TtDevice(uavcan::INode &node) :
@@ -18,7 +20,10 @@ TtDevice::TtDevice(uavcan::INode &node) :
 	_canPub_armStat(node),
 	// _orb_to_uavcan_pub_timer(node, TimerCbBinder(this, &TtDevice::broadcast_from_orb)),
 	_param_to_uavcan_pub_timer(node, TimerCbBinder(this, &TtDevice::broadcast_from_param)),
-	_yusuf_message_pub{nullptr}
+	_yusuf_message_pub{nullptr},
+	_myFrameListener{},
+	_frameId{0},
+	_sobalak{192}
 {
 	_p1_handle = param_find("YUSUF_PARAM_1");
 	_p2_handle = param_find("YUSUF_PARAM_2");
@@ -26,17 +31,19 @@ TtDevice::TtDevice(uavcan::INode &node) :
 	param_get(_p1_handle, &_p1);
 	param_get(_p2_handle, &_p2);
 	param_get(_sys_id_handle, &_sys_id);
+	// _myFrameListener = new RxFrameListener();
 
 }
 
 TtDevice::~TtDevice()
 {
 	(void) orb_unsubscribe(_yusuf_message_sub);
+	// delete(_myFrameListener);
 }
 
 int TtDevice::init()
 {
-	int res = _canPub_armStat.init(uavcan::TransferPriority::MiddleLower);
+	int res = _canPub_armStat.init(uavcan::TransferPriority::NumericallyMin);
 
 	if (res < 0)
 	{
@@ -51,6 +58,9 @@ int TtDevice::init()
 
 	_param_to_uavcan_pub_timer.startPeriodic(
 		uavcan::MonotonicDuration::fromUSec(5000000U / ORB_TO_UAVCAN_FREQUENCY_HZ));
+
+
+	_node.getDispatcher().installRxFrameListener(&_myFrameListener);
 
 	return res;
 }
@@ -84,6 +94,21 @@ void TtDevice::broadcast_from_param(const uavcan::TimerEvent &)
 	msg.status = (uint8_t)_p1;
 	(void) _canPub_armStat.broadcast(msg);
 	PX4_INFO("canPub_armStat yayınlandı. yayınlanan veri: %d", msg.status);
+
+	if (_frameId > 31)
+	{
+		_frameId = 0;
+	}
+
+	uint8_t tailByte = _frameId | _sobalak;
+
+	uint8_t myData[] = {33, tailByte};
+	uavcan::CanFrame myCanFrame{0b10010111000001000100110000000111, myData, 2};
+	uavcan::MonotonicTime myMonTime = uavcan::MonotonicTime::fromMSec(100);
+
+	int result = _node.injectTxFrame(myCanFrame,myMonTime,(uavcan::uint8_t)3U);
+	PX4_INFO("inject yapildi, result: %d, tailByte:%d", result, tailByte);
+	_frameId++;
 }
 
 void TtDevice::print_status()
