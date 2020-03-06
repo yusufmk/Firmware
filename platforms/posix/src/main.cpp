@@ -100,7 +100,7 @@ static void register_sig_handler();
 static void set_cpu_scaling();
 static int create_symlinks_if_needed(std::string &data_path);
 static int create_dirs();
-static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance);
+static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance, int redundancy);
 static std::string get_absolute_binary_path(const std::string &argv0);
 static void wait_to_exit();
 static bool is_already_running(int instance);
@@ -182,12 +182,13 @@ int main(int argc, char **argv)
 		std::string commands_file = "etc/init.d/rcS";
 		std::string test_data_path;
 		int instance = 0;
+		int redundancy = 0;
 
 		int myoptind = 1;
 		int ch;
 		const char *myoptarg = nullptr;
 
-		while ((ch = px4_getopt(argc, argv, "hdt:s:i:", &myoptind, &myoptarg)) != EOF) {
+		while ((ch = px4_getopt(argc, argv, "hdt:s:i:r:", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
 			case 'h':
 				print_usage();
@@ -207,6 +208,10 @@ int main(int argc, char **argv)
 
 			case 'i':
 				instance = strtoul(myoptarg, nullptr, 10);
+				break;
+
+			case 'r':
+				redundancy = strtoul(myoptarg, nullptr, 10);
 				break;
 
 			default:
@@ -273,7 +278,7 @@ int main(int argc, char **argv)
 		px4::init_once();
 		px4::init(argc, argv, "px4");
 
-		ret = run_startup_script(commands_file, absolute_binary_path, instance);
+		ret = run_startup_script(commands_file, absolute_binary_path, instance, redundancy);
 
 		// We now block here until we need to exit.
 		if (pxh_off) {
@@ -470,11 +475,11 @@ std::string get_absolute_binary_path(const std::string &argv0)
 }
 
 int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path,
-		       int instance)
+		       int instance, int redundancy)
 {
 	std::string shell_command("/bin/sh ");
 
-	shell_command += commands_file + ' ' + std::to_string(instance);
+	shell_command += commands_file + ' ' + std::to_string(instance) + ' ' + std::to_string(redundancy);
 
 	// Update the PATH variable to include the absolute_binary_path
 	// (required for the px4-alias.sh script and px4-* commands).
@@ -552,6 +557,7 @@ void print_usage()
 	printf("    -i <instance>      px4 instance id to run multiple instances [0...N], default=0\n");
 	printf("    -h                 help/usage information\n");
 	printf("    -d                 daemon mode, don't start pxh shell\n");
+	printf("    -r <redundancy>    running multiple px4's with same sys_id but different comp_id's. [0...N], default=0\n");
 	printf("\n");
 	printf("Usage for client: \n");
 	printf("\n");

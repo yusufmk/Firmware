@@ -27,7 +27,7 @@ nice -n 20 gzclient --verbose & GUI_PID=`echo $!`
 # set +e
 
 # export PX4_SIM_MODEL=iris
-# /home/nighthawk/PX4_Related/Firmware/build/px4_sitl_default/bin/px4 -i 0 /home/nighthawk/PX4_Related/Firmware/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t home/nighthawk/PX4_Related/Firmware/test_data & \
+# /home/nighthawk/PX4_Related/Firmware/build/px4_sitl_default/bin/px4 -s etc/init.d-posix/rcS -t home/nighthawk/PX4_Related/Firmware/test_data /home/nighthawk/PX4_Related/Firmware/ROMFS/px4fmu_common -i 0 -r 1  # & \
 # xterm -hold -e /home/nighthawk/PX4_Related/Firmware/build/px4_sitl_default/bin/px4 -i 1 /home/nighthawk/PX4_Related/Firmware/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t home/nighthawk/PX4_Related/Firmware/test_data
 
 # popd >/dev/null

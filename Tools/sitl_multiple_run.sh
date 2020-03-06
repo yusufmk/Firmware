@@ -21,14 +21,21 @@ sleep 1
 
 export PX4_SIM_MODEL=iris
 
+isRedundant=0
 n=0
 while [ $n -lt $sitl_num ]; do
 	working_dir="$build_path/instance_$n"
 	[ ! -d "$working_dir" ] && mkdir -p "$working_dir"
 
+	if [ $n -eq 1 ];
+	then
+		isRedundant=1
+	fi
+
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $n in $(pwd)"
-	xterm -hold -e ../bin/px4 -i $n "$src_path/ROMFS/px4fmu_common" -s etc/init.d-posix/rcS >out.log 2>err.log &
+
+	xterm -hold -e ../bin/px4 -i $n "$src_path/ROMFS/px4fmu_common" -s etc/init.d-posix/rcS -r $isRedundant >out.log 2>err.log &
 	popd &>/dev/null
 
 	n=$(($n + 1))

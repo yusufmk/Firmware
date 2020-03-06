@@ -7,6 +7,18 @@
 
 SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 
+set IS_REDUNDANT		$2
+# $IS_REDUNDANT = $2
+if [ $IS_REDUNDANT = 1 ]
+then
+	echo REDUNDANCY ACTIVATED !!!!
+fi
+
+# echo ARG0: $0
+# echo ARG1: $1
+# echo ARG2: $2
+# echo $3+1
+
 #
 # Main SITL startup script
 #
@@ -35,6 +47,9 @@ set VEHICLE_TYPE                none
 set LOGGER_BUF			1000
 
 set RUN_MINIMAL_SHELL           no
+
+
+
 
 # Use the variable set by sitl_run.sh to choose the model settings.
 if [ "$PX4_SIM_MODEL" = "shell" ]; then
@@ -84,7 +99,20 @@ fi
 
 # multi-instance setup
 # shellcheck disable=SC2154
+
+
+
+# ???? px4_instance nerede tanımlanıyor px4-alias.sh_in icinde .........
+if [ $IS_REDUNDANT -eq 1 ]
+then
+param set MAV_SYS_ID 1
+param set MAV_COMP_ID 200
+else
 param set MAV_SYS_ID $((px4_instance+1))
+param set MAV_COMP_ID 1
+fi
+
+
 simulator_tcp_port=$((4560+px4_instance))
 udp_offboard_port_local=$((14580+px4_instance))
 udp_offboard_port_remote=$((14540+px4_instance))
