@@ -235,6 +235,10 @@ sh "$autostart_file"
 dataman start
 replay tryapplyparams
 simulator start -u $simulator_udp_port
+if [ $IS_REDUNDANT -eq 1 ]
+then
+	simulator pause
+fi
 tone_alarm start
 gpssim start
 sensors start

@@ -546,13 +546,20 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 
 	bufLen = mavlink_msg_to_send_buffer(buf, &aMsg);
 
-	ssize_t len;
+	ssize_t len = 1;
 
 	if (_ip == InternetProtocol::UDP) {
-		len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+		if (Simulator::_ciktiVer)
+		{
+			len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+		}
+
 
 	} else {
-		len = ::send(_fd, buf, bufLen, 0);
+		if (Simulator::_ciktiVer)
+		{
+			len = ::send(_fd, buf, bufLen, 0);
+		}
 	}
 
 	if (len <= 0) {

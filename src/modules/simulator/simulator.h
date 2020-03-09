@@ -169,6 +169,9 @@ public:
 
 	void set_ip(InternetProtocol ip);
 	void set_port(unsigned port);
+	void toggleCikti();
+
+
 
 private:
 	Simulator() :
@@ -234,6 +237,7 @@ private:
 	unsigned int _port{14560};
 
 	InternetProtocol _ip{InternetProtocol::UDP};
+	int _ciktiVer{1};
 
 	double _realtime_factor{1.0};		///< How fast the simulation runs in comparison to real system time
 
@@ -243,7 +247,6 @@ private:
 	// Lib used to do the battery calculations.
 	Battery _battery {};
 	battery_status_s _battery_status{};
-
 #ifndef __PX4_QURT
 
 	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);

@@ -140,7 +140,8 @@
                 "cinttypes": "cpp",
                 "typeindex": "cpp",
                 "typeinfo": "cpp",
-                "valarray": "cpp"
+                "valarray": "cpp",
+                "*.ipp": "cpp"
         },
         "search.exclude": {
                 "build/**": true

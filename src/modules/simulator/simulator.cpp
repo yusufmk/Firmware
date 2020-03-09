@@ -95,7 +95,6 @@ void Simulator::parameters_update(bool force)
 int Simulator::start(int argc, char *argv[])
 {
 	_instance = new Simulator();
-
 	if (_instance) {
 		drv_led_start();
 
@@ -127,6 +126,12 @@ void Simulator::set_ip(InternetProtocol ip)
 	_ip = ip;
 }
 
+void Simulator::toggleCikti()
+{
+	_ciktiVer = _ciktiVer == 0 ? 1 : 0;
+	PX4_INFO("Simulator cikti durumu %d", _ciktiVer);
+
+}
 void Simulator::set_port(unsigned port)
 {
 	_port = port;
@@ -180,7 +185,13 @@ extern "C" {
 				g_sim_task = -1;
 			}
 
-		} else {
+		}
+		else if(argc == 2 && strcmp(argv[1], "pause") == 0){
+			// toggle ciktiVer
+			Simulator * thisIns = Simulator::getInstance();
+			thisIns->toggleCikti();
+		}
+		 else {
 			usage();
 			return 1;
 		}
