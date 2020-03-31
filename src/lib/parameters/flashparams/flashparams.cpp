@@ -42,9 +42,9 @@
  * foot print device.
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_shutdown.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/shutdown.h>
 
 #include <string.h>
 #include <stdbool.h>
@@ -57,6 +57,7 @@
 #include <parameters/tinybson/tinybson.h>
 #include "flashparams.h"
 #include "flashfs.h"
+#include "../param_translation.h"
 
 #if 0
 # define debug(fmt, args...)            do { warnx(fmt, ##args); } while(0)
@@ -299,6 +300,8 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		debug("unrecognised node type");
 		goto out;
 	}
+
+	param_modify_on_import(node->name, node->type, v);
 
 	if (param_set_external(param, v, state->mark_saved, true)) {
 

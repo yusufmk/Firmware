@@ -39,12 +39,12 @@
  * Based on the hmc5883 driver.
  */
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include "lis3mdl.h"
 
-LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation) :
-	CDev("LIS3MDL", path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+LIS3MDL::LIS3MDL(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus) :
+	CDev("LIS3MDL", nullptr),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_interface(interface),
 	_reports(nullptr),
 	_scale{},
@@ -91,9 +91,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rota
 
 LIS3MDL::~LIS3MDL()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	if (_mag_topic != nullptr) {
 		orb_unadvertise(_mag_topic);
 	}
@@ -116,7 +113,7 @@ LIS3MDL::~LIS3MDL()
 int
 LIS3MDL::calibrate(struct file *file_pointer, unsigned enable)
 {
-	struct mag_report report;
+	sensor_mag_s report;
 	ssize_t sz;
 	int ret = 1;
 	uint8_t num_samples = 10;
@@ -348,7 +345,7 @@ LIS3MDL::collect()
 	float yraw_f;
 	float zraw_f;
 
-	struct mag_report new_mag_report;
+	sensor_mag_s new_mag_report;
 	bool sensor_is_onboard = false;
 
 	perf_begin(_sample_perf);
@@ -361,8 +358,8 @@ LIS3MDL::collect()
 	ret = _interface->read(ADDR_OUT_X_L, (uint8_t *)&lis_report, sizeof(lis_report));
 
 	/**
-	 * Weird behavior: the X axis will be read instead of the temperature registers if you use a pointer to a packed struct...not sure why.
-	 * This works now, but further investigation to determine why this happens would be good (I am guessing a type error somewhere)
+	 * Silicon Bug: the X axis will be read instead of the temperature registers if you do a sequential read through XYZ.
+	 * The temperature registers must be addressed directly.
 	 */
 	ret = _interface->read(ADDR_OUT_T_L, (uint8_t *)&buf_rx, sizeof(buf_rx));
 
@@ -438,7 +435,7 @@ LIS3MDL::collect()
 }
 
 void
-LIS3MDL::Run()
+LIS3MDL::RunImpl()
 {
 	/* _measure_interval == 0  is used as _task_should_exit */
 	if (_measure_interval == 0) {
@@ -477,7 +474,7 @@ LIS3MDL::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_mag_s));
 
 	if (_reports == nullptr) {
 		return PX4_ERROR;
@@ -487,6 +484,9 @@ LIS3MDL::init()
 	reset();
 
 	_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
+
+	_measure_interval = LIS3MDL_CONVERSION_INTERVAL;
+	start();
 
 	return PX4_OK;
 }
@@ -599,8 +599,9 @@ LIS3MDL::measure()
 }
 
 void
-LIS3MDL::print_info()
+LIS3MDL::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	PX4_INFO("poll interval:  %u", _measure_interval);
@@ -631,8 +632,8 @@ LIS3MDL::reset()
 int
 LIS3MDL::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 {
-	unsigned count = buffer_len / sizeof(struct mag_report);
-	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
+	unsigned count = buffer_len / sizeof(sensor_mag_s);
+	sensor_mag_s *mag_buf = reinterpret_cast<sensor_mag_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -649,7 +650,7 @@ LIS3MDL::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 		 */
 		while (count--) {
 			if (_reports->get(mag_buf)) {
-				ret += sizeof(struct mag_report);
+				ret += sizeof(sensor_mag_s);
 				mag_buf++;
 			}
 		}
@@ -679,7 +680,7 @@ LIS3MDL::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 		}
 
 		if (_reports->get(mag_buf)) {
-			ret = sizeof(struct mag_report);
+			ret = sizeof(sensor_mag_s);
 		}
 	} while (0);
 
@@ -791,16 +792,6 @@ LIS3MDL::start()
 
 	/* schedule a cycle to start things */
 	ScheduleNow();
-}
-
-void
-LIS3MDL::stop()
-{
-	if (_measure_interval > 0) {
-		/* ensure no new items are queued while we cancel this one */
-		_measure_interval = 0;
-		ScheduleClear();
-	}
 }
 
 int

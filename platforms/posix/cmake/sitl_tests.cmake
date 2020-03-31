@@ -4,13 +4,14 @@
 
 # TODO: find a way to keep this in sync with tests_main
 set(tests
+	atomic_bitset
 	autodeclination
 	bezier
+	bitset
 	bson
 	commander
 	controllib
 	conv
-	ctlmath
 	dataman
 	file2
 	float
@@ -60,6 +61,7 @@ foreach(test_name ${tests})
 			none
 			none
 			test_${test_name}_generated
+			none
 			${PX4_SOURCE_DIR}
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -78,6 +80,7 @@ add_test(NAME mavlink
 		none
 		none
 		test_mavlink
+		none
 		${PX4_SOURCE_DIR}
 		${PX4_BINARY_DIR}
 	WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -95,6 +98,7 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 			none
 			none
 			test_shutdown
+			none
 			${PX4_SOURCE_DIR}
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -111,6 +115,7 @@ add_test(NAME dyn
 		none
 		none
 		test_dyn_hello
+		none
 		${PX4_SOURCE_DIR}
 		${PX4_BINARY_DIR}
 		$<TARGET_FILE:examples__dyn_hello>
@@ -134,6 +139,7 @@ foreach(cmd_name ${test_cmds})
 			none
 			none
 			cmd_${cmd_name}_generated
+			none
 			${PX4_SOURCE_DIR}
 			${PX4_BINARY_DIR}
 		WORKING_DIRECTORY ${SITL_WORKING_DIR})
@@ -142,20 +148,10 @@ foreach(cmd_name ${test_cmds})
 	set_tests_properties(posix_${cmd_name} PROPERTIES PASS_REGULAR_EXPRESSION "Shutting down")
 endforeach()
 
-if (CMAKE_BUILD_TYPE STREQUAL Coverage)
+if(CMAKE_BUILD_TYPE STREQUAL Coverage)
 	setup_target_for_coverage(test_coverage "${CMAKE_CTEST_COMMAND} --output-on-failure -T Test" tests)
 	setup_target_for_coverage(generate_coverage "${CMAKE_COMMAND} -E echo" generic)
+
+	# TODO:
+	#setup_target_for_coverage(mavsdk_coverage "${PX4_SOURCE_DIR}/test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --iterations 1 --fail-early" mavsdk)
 endif()
-
-add_custom_target(test_results_junit
-		COMMAND xsltproc ${PX4_SOURCE_DIR}/Tools/CTest2JUnit.xsl Testing/`head -n 1 < Testing/TAG`/Test.xml > JUnitTestResults.xml
-		DEPENDS test_results
-		COMMENT "Converting ctest output to junit xml"
-		WORKING_DIRECTORY ${PX4_BINARY_DIR})
-set_target_properties(test_results_junit PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-add_custom_target(test_cdash_submit
-		COMMAND ${CMAKE_CTEST_COMMAND} -D Experimental
-		USES_TERMINAL
-		WORKING_DIRECTORY ${PX4_BINARY_DIR})
-set_target_properties(test_cdash_submit PROPERTIES EXCLUDE_FROM_ALL TRUE)

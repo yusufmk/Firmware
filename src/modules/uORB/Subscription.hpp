@@ -39,7 +39,9 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include <px4_defines.h>
+#include <uORB/topics/uORBTopics.hpp>
+
+#include <px4_platform_common/defines.h>
 
 #include "uORBDeviceNode.hpp"
 #include "uORBManager.hpp"
@@ -58,26 +60,57 @@ public:
 	/**
 	 * Constructor
 	 *
+	 * @param id The uORB ORB_ID enum for the topic.
+	 * @param instance The instance for multi sub.
+	 */
+	Subscription(ORB_ID id, uint8_t instance = 0) :
+		_orb_id(id),
+		_instance(instance)
+	{
+	}
+
+	/**
+	 * Constructor
+	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 * @param instance The instance for multi sub.
 	 */
-	Subscription(const orb_metadata *meta, uint8_t instance = 0) : _meta(meta), _instance(instance)
+	Subscription(const orb_metadata *meta, uint8_t instance = 0) :
+		_orb_id((meta == nullptr) ? ORB_ID::INVALID : static_cast<ORB_ID>(meta->o_id)),
+		_instance(instance)
 	{
-		init();
 	}
 
-	~Subscription() { unsubscribe(); }
+	~Subscription()
+	{
+		unsubscribe();
+	}
 
-	bool init();
-	bool forceInit();
+	bool subscribe();
+	void unsubscribe();
 
 	bool valid() const { return _node != nullptr; }
-	bool published() { return valid() ? _node->is_published() : init(); }
+	bool advertised()
+	{
+		if (valid()) {
+			return _node->is_advertised();
+		}
+
+		// try to initialize
+		if (subscribe()) {
+			// check again if valid
+			if (valid()) {
+				return _node->is_advertised();
+			}
+		}
+
+		return false;
+	}
 
 	/**
 	 * Check if there is a new update.
 	 * */
-	bool updated() { return published() ? (_node->published_message_count() != _last_generation) : false; }
+	bool updated() { return advertised() ? (_node->published_message_count() != _last_generation) : false; }
 
 	/**
 	 * Update the struct
@@ -86,46 +119,27 @@ public:
 	bool update(void *dst) { return updated() ? copy(dst) : false; }
 
 	/**
-	 * Check if subscription updated based on timestamp.
-	 *
-	 * @return true only if topic was updated based on a timestamp and
-	 * copied to buffer successfully.
-	 * If topic was not updated since last check it will return false but
-	 * still copy the data.
-	 * If no data available data buffer will be filled with zeros.
-	 */
-	bool update(uint64_t *time, void *dst);
-
-	/**
 	 * Copy the struct
 	 * @param data The uORB message struct we are updating.
 	 */
-	bool copy(void *dst) { return published() ? _node->copy(dst, _last_generation) : false; }
-
-	hrt_abstime	last_update() { return published() ? _node->last_update() : 0; }
+	bool copy(void *dst) { return advertised() ? _node->copy(dst, _last_generation) : false; }
 
 	uint8_t		get_instance() const { return _instance; }
-	orb_id_t	get_topic() const { return _meta; }
+	orb_id_t	get_topic() const { return get_orb_meta(_orb_id); }
+	ORB_PRIO	get_priority() { return advertised() ? _node->get_priority() : ORB_PRIO_UNINITIALIZED; }
 
 protected:
 
 	friend class SubscriptionCallback;
 
-	DeviceNode	*get_node() { return _node; }
-
-	bool subscribe();
-	void unsubscribe();
+	DeviceNode		*get_node() { return _node; }
 
 	DeviceNode		*_node{nullptr};
-	const orb_metadata	*_meta{nullptr};
 
-	/**
-	 * Subscription's latest data generation.
-	 * Also used to track (and rate limit) subscription
-	 * attempts if the topic has not yet been published.
-	 */
-	unsigned		_last_generation{0};
-	uint8_t			_instance{0};
+	unsigned _last_generation{0}; /**< last generation the subscriber has seen */
+
+	ORB_ID _orb_id{ORB_ID::INVALID};
+	uint8_t _instance{0};
 };
 
 // Subscription wrapper class with data
@@ -133,6 +147,18 @@ template<class T>
 class SubscriptionData : public Subscription
 {
 public:
+	/**
+	 * Constructor
+	 *
+	 * @param id The uORB metadata ORB_ID enum for the topic.
+	 * @param instance The instance for multi sub.
+	 */
+	SubscriptionData(ORB_ID id, uint8_t instance = 0) :
+		Subscription(id, instance)
+	{
+		copy(&_data);
+	}
+
 	/**
 	 * Constructor
 	 *

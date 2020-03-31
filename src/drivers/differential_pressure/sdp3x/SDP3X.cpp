@@ -57,20 +57,24 @@ int SDP3X::write_command(uint16_t command)
 bool
 SDP3X::init_sdp3x()
 {
-	// step 1 - reset on broadcast
-	uint16_t prev_addr = get_device_address();
-	set_device_address(SDP3X_RESET_ADDR);
-	uint8_t reset_cmd = SDP3X_RESET_CMD;
-	int ret = transfer(&reset_cmd, 1, nullptr, 0);
-	set_device_address(prev_addr);
+	int ret;
 
-	if (ret != PX4_OK) {
-		perf_count(_comms_errors);
-		return false;
+	if (get_device_address() == I2C_ADDRESS_1_SDP3X) { // since we are broadcasting, only do it for the first device address
+		// step 1 - reset on broadcast
+		uint16_t prev_addr = get_device_address();
+		set_device_address(SDP3X_RESET_ADDR);
+		uint8_t reset_cmd = SDP3X_RESET_CMD;
+		ret = transfer(&reset_cmd, 1, nullptr, 0);
+		set_device_address(prev_addr);
+
+		if (ret != PX4_OK) {
+			perf_count(_comms_errors);
+			return false;
+		}
+
+		// wait until sensor is ready
+		px4_usleep(20000);
 	}
-
-	// wait until sensor is ready
-	px4_usleep(20000);
 
 	// step 2 - configure
 	ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
@@ -147,7 +151,7 @@ SDP3X::collect()
 	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
-	differential_pressure_s report;
+	differential_pressure_s report{};
 
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
@@ -156,9 +160,7 @@ SDP3X::collect()
 	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
 	report.device_id = _device_id.devid;
 
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
-	}
+	_airspeed_pub.publish(report);
 
 	ret = OK;
 
@@ -168,7 +170,7 @@ SDP3X::collect()
 }
 
 void
-SDP3X::Run()
+SDP3X::RunImpl()
 {
 	int ret = PX4_ERROR;
 

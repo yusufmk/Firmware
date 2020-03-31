@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,12 +43,12 @@
 
 #ifdef USE_I2C
 
-device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
+device::Device *MPU9250_I2C_interface(int bus, uint32_t address);
 
 class MPU9250_I2C : public device::I2C
 {
 public:
-	MPU9250_I2C(int bus, uint32_t address);
+	MPU9250_I2C(int bus, uint32_t address, int bus_frequency);
 	~MPU9250_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
@@ -62,21 +62,21 @@ private:
 };
 
 device::Device *
-MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus)
+MPU9250_I2C_interface(int bus, uint32_t address, int bus_frequency)
 {
-	return new MPU9250_I2C(bus, address);
+	return new MPU9250_I2C(bus, address, bus_frequency);
 }
 
-MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
-	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
+MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address, int bus_frequency) :
+	I2C("MPU9250_I2C", nullptr, bus, address, bus_frequency)
 {
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
+	set_device_type(DRV_IMU_DEVTYPE_MPU9250);
 }
 
 int
 MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE] {};
+	uint8_t cmd[2] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
@@ -96,7 +96,7 @@ MPU9250_I2C::read(unsigned reg_speed, void *data, unsigned count)
 	 * Since MPUReport has a cmd at front, we must return the data
 	 * after that. Foe anthing else we must return it
 	 */
-	uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, status);
+	uint32_t offset = count < sizeof(MPUReport) ? 0 : offsetof(MPUReport, ACCEL_XOUT_H);
 	uint8_t cmd = MPU9250_REG(reg_speed);
 	return transfer(&cmd, 1, &((uint8_t *)data)[offset], count);
 }

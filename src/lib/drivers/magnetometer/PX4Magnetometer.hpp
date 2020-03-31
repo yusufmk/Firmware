@@ -38,32 +38,35 @@
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_mag.h>
 
 class PX4Magnetometer : public cdev::CDev
 {
 
 public:
-	PX4Magnetometer(uint32_t device_id, uint8_t priority, enum Rotation rotation);
+	PX4Magnetometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Magnetometer() override;
 
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint64_t error_count) { _sensor_mag_pub.get().error_count = error_count; }
+	void increase_error_count() { _sensor_mag_pub.get().error_count++; }
 	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
 	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
 	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
 	void set_sensitivity(float x, float y, float z) { _sensitivity = matrix::Vector3f{x, y, z}; }
 
-	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
+	void update(hrt_abstime timestamp_sample, float x, float y, float z);
+
+	int get_class_instance() { return _class_device_instance; };
 
 	void print_status();
 
 private:
 
-	uORB::PublicationData<sensor_mag_s>	_sensor_mag_pub;
+	uORB::PublicationMultiData<sensor_mag_s>	_sensor_mag_pub;
 
 	const enum Rotation	_rotation;
 

@@ -32,6 +32,9 @@
 ############################################################################
 
 add_library(drivers_board
-	${PX4_SOURCE_DIR}/src/drivers/boards/common/board_identity.c # TODO: this is horrible and should be fixed
+	i2c.cpp
 	sitl_led.c
+	sitl_board_shutdown.c
+	spi.cpp
 )
+

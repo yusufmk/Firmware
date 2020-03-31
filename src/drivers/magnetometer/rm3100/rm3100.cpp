@@ -41,9 +41,9 @@
 
 #include "rm3100.h"
 
-RM3100::RM3100(device::Device *interface, const char *path, enum Rotation rotation) :
-	CDev("RM3100", path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+RM3100::RM3100(device::Device *interface, enum Rotation rotation, I2CSPIBusOption bus_option, int bus) :
+	CDev("RM3100", nullptr),
+	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id()), bus_option, bus),
 	_interface(interface),
 	_reports(nullptr),
 	_scale{},
@@ -80,9 +80,6 @@ RM3100::RM3100(device::Device *interface, const char *path, enum Rotation rotati
 
 RM3100::~RM3100()
 {
-	/* make sure we are truly inactive */
-	stop();
-
 	if (_reports != nullptr) {
 		delete _reports;
 	}
@@ -101,9 +98,6 @@ RM3100::~RM3100()
 int
 RM3100::self_test()
 {
-	/* Stop current measurements */
-	stop();
-
 	/* Chances are that a poll event was triggered, so wait for conversion and read registers in order to clear DRDY bit */
 	usleep(RM3100_CONVERSION_INTERVAL);
 	collect();
@@ -143,9 +137,6 @@ RM3100::self_test()
 	}
 
 	ret = !((cmd & BIST_XYZ_OK) == BIST_XYZ_OK);
-
-	/* Restart measurement state machine */
-	start();
 
 	return ret;
 }
@@ -192,7 +183,7 @@ RM3100::collect()
 	float yraw_f;
 	float zraw_f;
 
-	struct mag_report new_mag_report;
+	sensor_mag_s new_mag_report;
 	bool sensor_is_onboard = false;
 
 	perf_begin(_sample_perf);
@@ -287,7 +278,7 @@ RM3100::convert_signed(int32_t *n)
 }
 
 void
-RM3100::Run()
+RM3100::RunImpl()
 {
 	/* _measure_interval == 0  is used as _task_should_exit */
 	if (_measure_interval == 0) {
@@ -326,7 +317,7 @@ RM3100::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_mag_s));
 
 	if (_reports == nullptr) {
 		return PX4_ERROR;
@@ -342,6 +333,9 @@ RM3100::init()
 	if (ret != PX4_OK) {
 		PX4_ERR("self test failed");
 	}
+
+	_measure_interval = RM3100_CONVERSION_INTERVAL;
+	start();
 
 	return ret;
 }
@@ -474,8 +468,9 @@ RM3100::measure()
 }
 
 void
-RM3100::print_info()
+RM3100::print_status()
 {
+	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	PX4_INFO("poll interval:  %u", _measure_interval);
@@ -500,8 +495,8 @@ RM3100::reset()
 int
 RM3100::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 {
-	unsigned count = buffer_len / sizeof(struct mag_report);
-	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
+	unsigned count = buffer_len / sizeof(sensor_mag_s);
+	sensor_mag_s *mag_buf = reinterpret_cast<sensor_mag_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -518,7 +513,7 @@ RM3100::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 		 */
 		while (count--) {
 			if (_reports->get(mag_buf)) {
-				ret += sizeof(struct mag_report);
+				ret += sizeof(sensor_mag_s);
 				mag_buf++;
 			}
 		}
@@ -548,7 +543,7 @@ RM3100::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 		}
 
 		if (_reports->get(mag_buf)) {
-			ret = sizeof(struct mag_report);
+			ret = sizeof(sensor_mag_s);
 		}
 	} while (0);
 
@@ -591,18 +586,8 @@ RM3100::start()
 	_reports->flush();
 
 	set_default_register_values();
-	_measure_interval = (RM3100_CONVERSION_INTERVAL);
 
 	/* schedule a cycle to start things */
 	ScheduleNow();
 }
 
-void
-RM3100::stop()
-{
-	if (_measure_interval > 0) {
-		/* ensure no new items are queued while we cancel this one */
-		_measure_interval = 0;
-		ScheduleClear();
-	}
-}
