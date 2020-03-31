@@ -1,3 +1,4 @@
+#!/bin/bash
 
 #/bin/bash /home/nighthawk/PX4_Related/Firmware/Tools/sitl_run.sh /home/nighthawk/PX4_Related/Firmware/build/px4_sitl_default/bin/px4 none none none /home/nighthawk/PX4_Related/Firmware/ /home/nighthawk/PX4_Related/Firmware/build/px4_sitl_default/
 
@@ -31,8 +32,13 @@ nice -n 20 gzclient --verbose & GUI_PID=`echo $!`
 # xterm -hold -e /home/nighthawk/PX4_Related/Firmware/build/px4_sitl_default/bin/px4 -i 1 /home/nighthawk/PX4_Related/Firmware/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t home/nighthawk/PX4_Related/Firmware/test_data
 
 # popd >/dev/null
+valid=true
+while [ $valid ]
+do
+ps -C gzclient >/dev/null &&  sleep 5 || break
+done
 
-
+kill -9 $SIM_PID
 
 # if [[ -z "$DONT_RUN" ]]; then
 # 	kill -9 $SIM_PID

@@ -68,11 +68,20 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
+// YUSUF
+#include <sys/socket.h>
+#include <netinet/in.h>
+
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
 
 namespace simulator
 {
+
+enum mavlinkTarget{
+	trgSimulator,
+	trgRedundantFcs
+};
 
 #pragma pack(push, 1)
 struct RawGPSData {
@@ -189,6 +198,9 @@ private:
 
 		_px4_accel.set_sample_rate(250);
 		_px4_gyro.set_sample_rate(250);
+
+		red_fcs_udp_port_= 0;
+		red_fcs_socket_fd_= 0;
 	}
 
 	~Simulator()
@@ -262,16 +274,25 @@ private:
 	void handle_message_rc_channels(const mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
 
+	// YUSUF
+	void handle_message_heartbeat(const mavlink_message_t *msg);
+	void handle_message_sys_status(const mavlink_message_t *msg);
+
+
 	void parameters_update(bool force);
 	void poll_topics();
 	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
 	void send_controls();
-	void send_heartbeat();
-	void send_mavlink_message(const mavlink_message_t &aMsg);
+	// YUSUF degisiklik
+	void send_heartbeat(simulator::mavlinkTarget trg);
+	void send_mavlink_message(const mavlink_message_t &aMsg, simulator::mavlinkTarget aTrg);
 	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu);
 	void update_gps(const mavlink_hil_gps_t *gps_sim);
+
+	// YUSUF
+	void send_sys_status();
 
 	static void *sending_trampoline(void *);
 
@@ -280,6 +301,9 @@ private:
 	orb_advert_t _gpos_pub{nullptr};
 	orb_advert_t _lpos_pub{nullptr};
 	orb_advert_t _rc_channels_pub{nullptr};
+
+	// YUSUF
+	orb_advert_t _red_vehicle_status_pub{nullptr};
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
@@ -301,6 +325,15 @@ private:
 	vehicle_attitude_s _attitude {};
 	vehicle_status_s _vehicle_status {};
 
+	// YUSUF
+	vehicle_status_s _red_vehicle_status {};
+
+	struct sockaddr_in red_fcs_addr_;
+  	socklen_t red_fcs_addr_len_;
+	int red_fcs_udp_port_;
+	int red_fcs_socket_fd_;
+
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
 		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //< minimum battery percentage
@@ -311,3 +344,5 @@ private:
 
 #endif
 };
+
+

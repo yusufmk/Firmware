@@ -130,7 +130,6 @@ void Simulator::toggleCikti()
 {
 	_ciktiVer = _ciktiVer == 0 ? 1 : 0;
 	PX4_INFO("Simulator cikti durumu %d", _ciktiVer);
-
 }
 void Simulator::set_port(unsigned port)
 {

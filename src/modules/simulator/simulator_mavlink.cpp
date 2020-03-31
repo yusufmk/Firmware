@@ -68,6 +68,7 @@ static unsigned char _buf[2048];
 static sockaddr_in _srcaddr;
 static unsigned _addrlen = sizeof(_srcaddr);
 static hrt_abstime batt_sim_start = 0;
+static int _outputCnt = 0;
 
 const unsigned mode_flag_armed = 128;
 const unsigned mode_flag_custom = 1;
@@ -188,7 +189,15 @@ void Simulator::send_controls()
 
 			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
 
-			send_mavlink_message(message);
+			send_mavlink_message(message, simulator::trgSimulator);
+
+			// YUSUF
+			// send_heartbeat();
+			if (++_outputCnt > 250)
+			{
+				send_sys_status();
+				_outputCnt = 0;
+			}
 		}
 	}
 }
@@ -289,45 +298,83 @@ void Simulator::update_gps(const mavlink_hil_gps_t *gps_sim)
 	write_gps_data((void *)&gps);
 }
 
+// YUSUF
+void Simulator::send_sys_status()
+{
+	mavlink_message_t msg;
+	mavlink_sys_status_t sysStat;
+	sysStat.onboard_control_sensors_health = _vehicle_status.onboard_control_sensors_health;
+
+	sysStat.battery_remaining = 0;
+	sysStat.current_battery = 0;
+	sysStat.onboard_control_sensors_present = 0;
+	sysStat.onboard_control_sensors_enabled = 0;
+	sysStat.load = 0;
+	sysStat.voltage_battery = 0;
+	sysStat.drop_rate_comm = 0;
+	sysStat.errors_comm = 0;
+	sysStat.errors_count1 = 0;
+	sysStat.errors_count2 = 0;
+	sysStat.errors_count3 = 0;
+	sysStat.errors_count4 = 0;
+
+	mavlink_msg_sys_status_encode(_param_mav_sys_id.get(),_param_mav_comp_id.get(), &msg, &sysStat);
+	send_mavlink_message(msg, simulator::trgRedundantFcs);
+}
+
+
 void Simulator::handle_message(const mavlink_message_t *msg)
 {
-	switch (msg->msgid) {
-	case MAVLINK_MSG_ID_HIL_SENSOR:
-		handle_message_hil_sensor(msg);
-		break;
+		switch (msg->msgid) {
+		case MAVLINK_MSG_ID_HIL_SENSOR:
+			handle_message_hil_sensor(msg);
+			break;
 
-	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
-		handle_message_optical_flow(msg);
-		break;
+		case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
+			handle_message_optical_flow(msg);
+			break;
 
-	case MAVLINK_MSG_ID_ODOMETRY:
-		handle_message_odometry(msg);
-		break;
+		case MAVLINK_MSG_ID_ODOMETRY:
+			handle_message_odometry(msg);
+			break;
 
-	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
-		handle_message_vision_position_estimate(msg);
-		break;
+		case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
+			handle_message_vision_position_estimate(msg);
+			break;
 
-	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
-		handle_message_distance_sensor(msg);
-		break;
+		case MAVLINK_MSG_ID_DISTANCE_SENSOR:
+			handle_message_distance_sensor(msg);
+			break;
 
-	case MAVLINK_MSG_ID_HIL_GPS:
-		handle_message_hil_gps(msg);
-		break;
+		case MAVLINK_MSG_ID_HIL_GPS:
+			handle_message_hil_gps(msg);
+			break;
 
-	case MAVLINK_MSG_ID_RC_CHANNELS:
-		handle_message_rc_channels(msg);
-		break;
+		case MAVLINK_MSG_ID_RC_CHANNELS:
+			handle_message_rc_channels(msg);
+			break;
 
-	case MAVLINK_MSG_ID_LANDING_TARGET:
-		handle_message_landing_target(msg);
-		break;
+		case MAVLINK_MSG_ID_LANDING_TARGET:
+			handle_message_landing_target(msg);
+			break;
 
-	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
-		handle_message_hil_state_quaternion(msg);
-		break;
-	}
+		case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
+			handle_message_hil_state_quaternion(msg);
+			break;
+
+		// YUSUF
+		// case MAVLINK_MSG_ID_HEARTBEAT:
+		// 	handle_message_heartbeat(msg);
+		// 	break;
+
+		case MAVLINK_MSG_ID_SYS_STATUS:
+			if (msg->compid != _param_mav_comp_id.get())
+			{
+				handle_message_sys_status(msg);
+			}
+			break;
+		}
+
 }
 
 void Simulator::handle_message_distance_sensor(const mavlink_message_t *msg)
@@ -347,6 +394,7 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 
 void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 {
+	// PX4_INFO("handle hil sensor");
 	mavlink_hil_sensor_t imu;
 	mavlink_msg_hil_sensor_decode(msg, &imu);
 
@@ -539,7 +587,23 @@ void Simulator::handle_message_vision_position_estimate(const mavlink_message_t 
 	publish_odometry_topic(msg);
 }
 
-void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
+// YUSUF
+void Simulator::handle_message_heartbeat(const mavlink_message_t *msg)
+{
+
+}
+
+void Simulator::handle_message_sys_status(const mavlink_message_t *msg)
+{
+	PX4_INFO("handle_message_sys_status icine girdi gelen compid:%d msgid:%d", msg->compid, msg->msgid);
+
+	mavlink_sys_status_t redSysStatus;
+	mavlink_msg_sys_status_decode(msg, &redSysStatus);
+	_red_vehicle_status.onboard_control_sensors_health = redSysStatus.onboard_control_sensors_health;
+	// orb_publish(ORB_ID(vehicle_status_red), &_red_vehicle_status_pub, &_red_vehicle_status);
+}
+
+void Simulator::send_mavlink_message(const mavlink_message_t &aMsg, simulator::mavlinkTarget aTrg)
 {
 	uint8_t  buf[MAVLINK_MAX_PACKET_LEN];
 	uint16_t bufLen = 0;
@@ -548,14 +612,23 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg)
 
 	ssize_t len = 1;
 
-	if (_ip == InternetProtocol::UDP) {
-		if (Simulator::_ciktiVer)
+	if (_ip == InternetProtocol::UDP)
+	{
+		if (aTrg == simulator::trgSimulator)
 		{
-			len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+			if (Simulator::_ciktiVer)
+			{
+				len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+			}
 		}
-
-
-	} else {
+		else
+		{
+			PX4_INFO("red fcs'e veri gonderildi.");
+			len = ::sendto(red_fcs_socket_fd_, buf, bufLen, 0, (struct sockaddr *)&red_fcs_addr_, red_fcs_addr_len_);
+		}
+	}
+	else // internetProtocol TCP
+	{
 		if (Simulator::_ciktiVer)
 		{
 			len = ::send(_fd, buf, bufLen, 0);
@@ -597,11 +670,12 @@ void Simulator::send()
 	// simulator to start sending sensor data which will set the time and
 	// get everything rolling.
 	// Without this, we get stuck at px4_poll which waits for a time update.
-	send_heartbeat();
+	send_heartbeat(simulator::trgSimulator);
 
 	px4_pollfd_struct_t fds[1] = {};
 	fds[0].fd = _actuator_outputs_sub;
 	fds[0].events = POLLIN;
+
 
 	while (true) {
 		// Wait for up to 100ms for data.
@@ -634,17 +708,17 @@ void Simulator::request_hil_state_quaternion()
 	cmd_long.param1 = MAVLINK_MSG_ID_HIL_STATE_QUATERNION;
 	cmd_long.param2 = 5e3;
 	mavlink_msg_command_long_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &cmd_long);
-	send_mavlink_message(message);
+	send_mavlink_message(message, simulator::trgSimulator);
 }
 
-void Simulator::send_heartbeat()
+void Simulator::send_heartbeat(simulator::mavlinkTarget trg)
 {
 	mavlink_heartbeat_t hb = {};
 	mavlink_message_t message = {};
 	hb.autopilot = 12;
 	hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
 	mavlink_msg_heartbeat_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hb);
-	send_mavlink_message(message);
+	send_mavlink_message(message, trg);
 }
 
 void Simulator::poll_for_MAVLink_messages()
@@ -659,6 +733,36 @@ void Simulator::poll_for_MAVLink_messages()
 	_myaddr.sin_family = AF_INET;
 	_myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	_myaddr.sin_port = htons(_port);
+
+	// YUSUF
+	memset((char*)&red_fcs_addr_,0, sizeof(red_fcs_addr_));
+	red_fcs_addr_.sin_family = AF_INET;
+	red_fcs_addr_.sin_addr.s_addr = htonl(INADDR_ANY);
+	red_fcs_addr_len_ = sizeof(red_fcs_addr_);
+	if (_param_mav_comp_id.get() == 1)
+	{
+		red_fcs_addr_.sin_port = htons(14590);
+		if ((red_fcs_socket_fd_ = socket(AF_INET,SOCK_DGRAM,0)) < 0)
+		{
+			PX4_ERR("red socket create failed");
+		}
+
+		if (bind(red_fcs_socket_fd_, (struct sockaddr *)&red_fcs_addr_,red_fcs_addr_len_) < 0 )
+		{
+			PX4_ERR("red socket bind failed");
+		}
+
+	}
+	else
+	{
+		// BURALARDA BI BOKLUK VAR
+		red_fcs_addr_.sin_port = htons(14590);
+		if ((red_fcs_socket_fd_ = socket(AF_INET,SOCK_DGRAM,0)) < 0)
+		{
+			PX4_ERR("red socket create failed for redundant");
+		}
+	}
+
 
 	if (_ip == InternetProtocol::UDP) {
 
@@ -741,6 +845,8 @@ void Simulator::poll_for_MAVLink_messages()
 	unsigned fd_count = 1;
 	fds[0].fd = _fd;
 	fds[0].events = POLLIN;
+	fds[1].fd = red_fcs_socket_fd_;
+	fds[1].events = POLLIN;
 
 #ifdef ENABLE_UART_RC_INPUT
 	// setup serial connection to autopilot (used to get manual controls)
@@ -778,17 +884,32 @@ void Simulator::poll_for_MAVLink_messages()
 	while (true) {
 
 		// wait for new mavlink messages to arrive
-		int pret = ::poll(&fds[0], fd_count, 1000);
+		int pret = ::poll(&fds[0], fd_count, 0);
 
 		if (pret == 0) {
 			// Timed out.
-			continue;
+			// PX4_WARN("poll timeout");
+			// continue;
 		}
 
 		if (pret < 0) {
 			PX4_ERR("poll error %d, %d", pret, errno);
-			continue;
+			// continue;
 		}
+
+		int pret_2 = ::poll(&fds[1],fd_count, 0);
+
+		if (pret_2 == 0) {
+			// Timed out.
+			// PX4_WARN("poll 2 timeout");
+			// continue;
+		}
+		if (pret_2 < 0) {
+			PX4_ERR("poll 2 error %d, %d", pret, errno);
+			// continue;
+		}
+
+
 
 		if (fds[0].revents & POLLIN) {
 
@@ -799,6 +920,21 @@ void Simulator::poll_for_MAVLink_messages()
 
 				for (int i = 0; i < len; i++) {
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &mavlink_status)) {
+						handle_message(&msg);
+					}
+				}
+			}
+		}
+		if (fds[1].revents & POLLIN) {
+			// PX4_INFO("burayda gdsafdsf");
+			int len = ::recvfrom(red_fcs_socket_fd_, _buf, sizeof(_buf), 0, (struct sockaddr *)&red_fcs_addr_, (socklen_t *)&red_fcs_addr_len_);
+
+			if (len > 0) {
+				mavlink_message_t msg;
+
+				for (int i = 0; i < len; i++) {
+					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &mavlink_status)) {
+						PX4_INFO("redden veri geldi?!, msg.compid:%d, msg.msgid:%d", msg.compid, msg.msgid);
 						handle_message(&msg);
 					}
 				}
@@ -825,7 +961,7 @@ void Simulator::poll_for_MAVLink_messages()
 		}
 
 #endif
-	}
+	} // end of while
 
 	orb_unsubscribe(_actuator_outputs_sub);
 	orb_unsubscribe(_vehicle_status_sub);
