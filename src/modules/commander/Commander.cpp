@@ -517,7 +517,8 @@ void usage(const char *reason)
 
 void print_status()
 {
-	PX4_INFO("arming: %s", arming_state_names[status.arming_state]);
+	PX4_INFO("arming: %s\n\tmain state: %s\n\tnavigation state: %s",
+		arming_state_names[status.arming_state], main_state_names[internal_state.main_state], nav_state_names[status.nav_state] );
 }
 
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy)

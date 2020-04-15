@@ -35,7 +35,8 @@ while [ $n -lt $sitl_num ]; do
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $n in $(pwd)"
 
-	xterm -hold -e ../bin/px4 -i $n "$src_path/ROMFS/px4fmu_common" -s etc/init.d-posix/rcS -r $isRedundant >out.log 2>err.log &
+	#xterm -hold -e ../bin/px4 -i $n "$src_path/ROMFS/px4fmu_common" -s etc/init.d-posix/rcS -r $isRedundant >out.log 2>err.log &
+	gnome-terminal -e "../bin/px4 -i $n \"$src_path/ROMFS/px4fmu_common\" -s etc/init.d-posix/rcS -r $isRedundant >out.log 2>err.log &"
 	popd &>/dev/null
 
 	n=$(($n + 1))

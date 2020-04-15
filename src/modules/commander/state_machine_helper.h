@@ -76,6 +76,8 @@ typedef enum {
 } arm_requirements_t;
 
 extern const char *const arming_state_names[];
+extern const char *const main_state_names[];
+extern const char *const nav_state_names[];
 
 bool is_safe(const safety_s &safety, const actuator_armed_s &armed);
 

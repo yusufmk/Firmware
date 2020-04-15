@@ -85,6 +85,49 @@ const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"IN_AIR_RESTORE",
 };
 
+const char *const main_state_names[commander_state_s::MAIN_STATE_MAX] = {
+	"MANUAL",
+	"ALTCTL",
+	"POSCTL",
+	"AUTO_MISSION",
+	"AUTO_LOITER",
+	"AUTO_RTL",
+	"ACRO",
+	"OFFBOARD",
+	"STAB",
+	"RATTITUDE",
+	"AUTO_TAKEOFF",
+	"AUTO_LAND",
+	"AUTO_FOLLOW_TARGET",
+	"AUTO_PRECLAND",
+	"ORBIT"
+};
+
+const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
+	"MANUAL",
+	"ALTCTL",
+	"POSCTL",
+	"AUTO_MISSION",
+	"AUTO_LOITER",
+	"AUTO_RTL",
+	"AUTO_RCRECOVER",
+	"AUTO_RTGS",
+	"AUTO_LANDENGFAIL",
+	"AUTO_GPSFAIL",
+	"ACRO",
+	"UNUSED",
+	"DESCEND",
+	"TERMINATION",
+	"OFFBOARD",
+	"STAB",
+	"RATTITUDE",
+	"AUTO_TAKEOFF",
+	"AUTO_LAND",
+	"AUTO_FOLLOW_TARGET",
+	"AUTO_PRECLAND",
+	"ORBIT"
+};
+
 static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked immediately
 
 void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,

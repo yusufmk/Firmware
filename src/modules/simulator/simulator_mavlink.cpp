@@ -623,7 +623,7 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg, simulator::m
 		}
 		else
 		{
-			PX4_INFO("red fcs'e veri gonderildi.");
+			// PX4_INFO("red fcs'e veri gonderildi.");
 			len = ::sendto(red_fcs_socket_fd_, buf, bufLen, 0, (struct sockaddr *)&red_fcs_addr_, red_fcs_addr_len_);
 		}
 	}
@@ -934,7 +934,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 				for (int i = 0; i < len; i++) {
 					if (mavlink_parse_char(MAVLINK_COMM_0, _buf[i], &msg, &mavlink_status)) {
-						PX4_INFO("redden veri geldi?!, msg.compid:%d, msg.msgid:%d", msg.compid, msg.msgid);
+						// PX4_INFO("redden veri geldi?!, msg.compid:%d, msg.msgid:%d", msg.compid, msg.msgid);
 						handle_message(&msg);
 					}
 				}

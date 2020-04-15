@@ -47,11 +47,17 @@
                 ]
             }
         },
+
+
+        // YUSUF COMMENT
+        // buraya redundant sekilde debug yapabilmek icin config eklenecek
+        // prelaunch task olarak bir tane px4 baslatan script calistirilacak.
+        // boylece debug yapilan px4 ile prelaunch yapilan px4 haberlesebilecek
         {
             "name": "Debug SITL (gazebo iris)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${command:cmake.launchTargetPath}",
+            "program": "${workspaceFolder}/build/px4_sitl_default/bin/px4",
             "args": [
                 "${workspaceFolder}/ROMFS/px4fmu_common",
                 "-s",
