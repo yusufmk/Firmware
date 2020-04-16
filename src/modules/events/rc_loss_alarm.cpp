@@ -46,6 +46,7 @@
 #include <tunes/tune_definition.h>
 
 #include <uORB/topics/tune_control.h>
+#include "modules/commander/RedundancyManager.hpp"
 
 namespace events
 {
@@ -74,7 +75,7 @@ void RC_Loss_Alarm::process()
 	}
 
 	if (!_was_armed &&
-	    _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	     anyArmed(_vehicle_status.arming_state)) {
 
 		_was_armed = true;	// Once true, impossible to go back to false
 	}
@@ -85,7 +86,7 @@ void RC_Loss_Alarm::process()
 	}
 
 	if (_was_armed && _had_rc && _vehicle_status.rc_signal_lost &&
-	    _vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+	    anyArmed(_vehicle_status.arming_state)) {
 		play_tune();
 		_alarm_playing = true;
 

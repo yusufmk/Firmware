@@ -64,6 +64,7 @@
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 #include <version/version.h>
+#include "modules/commander/RedundancyManager.hpp"
 
 //#define DBGPRINT //write status output every few seconds
 
@@ -1361,7 +1362,7 @@ bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_su
 		if (ret == 0 && vehicle_status_updated) {
 			vehicle_status_s vehicle_status;
 			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
-			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _manually_logging_override;
+			bool armed = anyArmed(vehicle_status.arming_state) || _manually_logging_override;
 
 			if (_prev_state != armed && _log_mode != LogMode::boot_until_shutdown) {
 				_prev_state = armed;

@@ -3,12 +3,15 @@
 uint64 timestamp				# time since system start (microseconds)
 
 uint8 ARMING_STATE_INIT = 0
-uint8 ARMING_STATE_STANDBY = 1
-uint8 ARMING_STATE_ARMED = 2
-uint8 ARMING_STATE_STANDBY_ERROR = 3
-uint8 ARMING_STATE_REBOOT = 4
-uint8 ARMING_STATE_IN_AIR_RESTORE = 5
-uint8 ARMING_STATE_MAX = 6
+uint8 ARMING_STATE_MON_STANDBY = 1
+uint8 ARMING_STATE_OP_STANDBY = 2
+uint8 ARMING_STATE_MON_ARMED = 3
+uint8 ARMING_STATE_OP_ARMED = 4
+uint8 ARMING_STATE_MON_STANDBY_ERROR = 5
+uint8 ARMING_STATE_OP_STANDBY_ERROR = 6
+uint8 ARMING_STATE_REBOOT = 7
+uint8 ARMING_STATE_IN_AIR_RESTORE = 8
+uint8 ARMING_STATE_MAX = 9
 
 # FailureDetector status
 uint8 FAILURE_NONE = 0
@@ -53,6 +56,9 @@ uint8 VEHICLE_TYPE_UNKNOWN = 0
 uint8 VEHICLE_TYPE_ROTARY_WING = 1
 uint8 VEHICLE_TYPE_FIXED_WING = 2
 uint8 VEHICLE_TYPE_ROVER = 3
+
+uint8 RED_BEH_MON = 0
+uint8 RED_BEH_OP = 1
 
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
@@ -100,4 +106,4 @@ bool aspd_fault_declared	# true when an airspeed fault has been declared
 bool aspd_use_inhibit		# true if switching to a non-airspeed control mode has been requested
 bool aspd_fail_rtl		# true if airspeed failure invoked RTL has been requested
 float32 load_factor_ratio	# ratio of measured to aerodynamic load factor limit. Greater than 1 indicates airspeed low error condition.
-
+uint8 redundant_behavior

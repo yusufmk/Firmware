@@ -524,12 +524,11 @@ void print_status()
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy)
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
-
 	// Transition the armed state. By passing mavlink_log_pub to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
 	arming_res = arming_state_transition(&status,
 					     safety,
-					     arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY,
+					     arm ? vehicle_status_s::ARMING_STATE_OP_ARMED : vehicle_status_s::ARMING_STATE_OP_STANDBY,
 					     &armed,
 					     true /* fRunPreArmChecks */,
 					     mavlink_log_pub_local,
@@ -564,6 +563,8 @@ Commander::Commander() :
 	status.rc_signal_lost = true;
 	status_flags.offboard_control_signal_lost = true;
 	status.data_link_lost = true;
+
+	status.redundant_behavior = _param_com_red_beh.get() == 1 ? vehicle_status_s::RED_BEH_OP : vehicle_status_s::RED_BEH_MON;
 
 	status_flags.condition_power_input_valid = true;
 	status_flags.rc_calibration_valid = true;
@@ -1518,7 +1519,7 @@ Commander::run()
 				if (armed.armed && (status.hil_state == vehicle_status_s::HIL_STATE_OFF)
 				    && safety.safety_switch_available && !safety.safety_off) {
 
-					if (TRANSITION_CHANGED == arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY,
+					if (TRANSITION_CHANGED == arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_OP_STANDBY,
 							&armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
 							&status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))
 					   ) {
@@ -1688,7 +1689,7 @@ Commander::run()
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
-			arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+			arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_OP_STANDBY, &armed,
 							     true /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
 							     arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
@@ -1909,7 +1910,7 @@ Commander::run()
 
 			status.rc_signal_lost = false;
 
-			const bool in_armed_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			const bool in_armed_state = (status.arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED) || (status.arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED) ;
 			const bool arm_switch_or_button_mapped = sp_man.arm_switch != manual_control_setpoint_s::SWITCH_POS_NONE;
 			const bool arm_button_pressed = arm_switch_is_button == 1
 							&& sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
@@ -1938,7 +1939,7 @@ Commander::run()
 					print_reject_arm("Not disarming! Not yet in manual mode or landed");
 
 				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
-					arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+					arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_OP_STANDBY, &armed,
 									     true /* fRunPreArmChecks */,
 									     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 				}
@@ -1987,8 +1988,8 @@ Commander::run()
 						   geofence_action == geofence_result_s::GF_ACTION_RTL) {
 						print_reject_arm("Not arming: Geofence RTL requires valid home");
 
-					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-						arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
+					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_MON_STANDBY || status.arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY) {
+						arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_OP_ARMED, &armed,
 										     !in_arming_grace_period /* fRunPreArmChecks */,
 										     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
@@ -2444,20 +2445,21 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 		overload_start = 0;
 	}
 
+	// YUSUF COMMENT BURAYI COK ONEMSEMEDIM, LEDLERIN YANMA SEKILLERINI RED BEH E GORE DEGISTIREBILIRIZ.
 	/* driving rgbled */
 	if (changed || last_overload != overload) {
 		uint8_t led_mode = led_control_s::MODE_OFF;
 		uint8_t led_color = led_control_s::COLOR_WHITE;
 		bool set_normal_color = false;
 
-		uint64_t overload_warn_delay = (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1_ms : 250_ms;
+		uint64_t overload_warn_delay = (status_local->arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED) ? 1_ms : 250_ms;
 
 		/* set mode */
 		if (overload && (hrt_elapsed_time(&overload_start) > overload_warn_delay)) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_PURPLE;
 
-		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED) {
 			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
@@ -2465,7 +2467,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
-		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+		} else if (status_local->arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY) {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
@@ -3473,7 +3475,7 @@ void *commander_low_prio_loop(void *arg)
 
 						Commander::preflight_check(false);
 
-						arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+						arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_OP_STANDBY, &armed,
 									false /* fRunPreArmChecks */,
 									&mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
@@ -3900,7 +3902,7 @@ void Commander::airspeed_use_check()
 	bool is_fixed_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 	// assume airspeed sensor is good before starting FW flight
-	bool valid_flight_condition = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) &&
+	bool valid_flight_condition = (anyArmed(status.arming_state)) &&
 				      is_fixed_wing && !land_detector.landed;
 	bool fault_declared = false;
 	bool fault_cleared = false;
@@ -4199,7 +4201,7 @@ void Commander::estimator_check(bool *status_changed)
 		 * to false after failure to prevent flyaway crashes */
 		if (run_quality_checks && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
-			if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+			if (status.arming_state == vehicle_status_s::ARMING_STATE_MON_STANDBY || status.arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY) {
 				// reset flags and timer
 				_time_at_takeoff = hrt_absolute_time();
 				_nav_test_failed = false;

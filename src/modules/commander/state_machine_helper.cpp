@@ -66,21 +66,35 @@ static constexpr const char reason_no_datalink[] = "no datalink";
 // code for those checks.
 static constexpr const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX]
 = {
-	//                                                    INIT,  STANDBY, ARMED, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
-	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, true,          false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  false,         false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,         false,  true },
-	{ /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    true,  true,          false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_REBOOT */         true,  true,    false, true,          true,   true },
-	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,         false,  false }, // NYI
+	// //                                                    INIT,  STANDBY, ARMED, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
+	// { /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, true,          false,  false },
+	// { /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  false,         false,  false },
+	// { /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,         false,  true },
+	// { /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    true,  true,          false,  false },
+	// { /* vehicle_status_s::ARMING_STATE_REBOOT */         true,  true,    false, true,          true,   true },
+	// { /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,         false,  false }, // NYI
+
+	//                                                    INIT,  MON_STANDBY, OP_STANDBY, MON_ARMED,  OP_ARMED, MON_STANDBY_ERROR, OP_STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
+	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,	  true,       false,      false,    true,              true,             false,  false },
+	{ /* vehicle_status_s::ARMING_STATE_MON_STANDBY */    true,  true,        true,       true,       false,    false,             false,            false,  false },
+	{ /* vehicle_status_s::ARMING_STATE_OP_STANDBY */     true,  true,        true,       false,      true,     false,             false,            false,  false },
+	{ /* vehicle_status_s::ARMING_STATE_MON_ARMED */      false, true,        false,      true,       true,     false,             false,            false,  true },
+	{ /* vehicle_status_s::ARMING_STATE_OP_ARMED */       false, false,       true,       true,       true,     false,             false,            false,  true },
+	{ /* vehicle_status_s::ARMING_STATE_MON_STANDBY_ERROR */true, true,       false,      true,       false,    true,              false,            false,  false },
+	{ /* vehicle_status_s::ARMING_STATE_OP_STANDBY_ERROR */true, false,       true,       false,      true,     false,             true,             false,  false }, //??????
+	{ /* vehicle_status_s::ARMING_STATE_REBOOT */         true,  true,        true,       false,      false,    true,              true,             true,   true },
+	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,       false,      false,      false,    false,             false,            false,  false }, // NYI
 };
 
 // You can index into the array with an arming_state_t in order to get its textual representation
 const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"INIT",
-	"STANDBY",
-	"ARMED",
-	"STANDBY_ERROR",
+	"MON_STANDBY",
+	"OP_STANDBY",
+	"MON_ARMED",
+	"OP_ARMED",
+	"MON_STANDBY_ERROR",
+	"OP_STANDBY_ERROR",
 	"REBOOT",
 	"IN_AIR_RESTORE",
 };
@@ -152,8 +166,22 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 	const bool hil_enabled = (status->hil_state == vehicle_status_s::HIL_STATE_ON);
 
+	//YUSUF COMMENT
+	// BURASI BU FONK U CAGIRAN HERKESIN SADECE OP STATELERINI SECTIGINI VARSAYAR
+	// EGER OP STATE'LERDEN BIRINE GECIS KOMUTU GELIRSE VE RED BEH MONITORSE OZMN NEW STATE'I BIR AZALT
+	// BOYLECE ILGILI NEW STATE I MON CINSINE DONUSTURMUS OLUYORUZ
+	arming_state_t my_new_arming_state = new_arming_state;
+	if ((new_arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED ||
+		new_arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY ||
+		new_arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY_ERROR) &&
+		status->redundant_behavior == vehicle_status_s::RED_BEH_MON )
+	{
+		--my_new_arming_state;
+	}
+
+
 	/* only check transition if the new state is actually different from the current one */
-	if (new_arming_state == current_arming_state) {
+	if (my_new_arming_state == current_arming_state) {
 		ret = TRANSITION_NOT_CHANGED;
 
 	} else {
@@ -167,7 +195,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
 
 		/* only perform the pre-arm check if we have to */
-		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+		if (fRunPreArmChecks && (my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED || my_new_arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED)
 		    && !hil_enabled) {
 
 			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, true, true,
@@ -183,8 +211,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		/* re-run the pre-flight check as long as sensors are failing */
 		if (!status_flags->condition_system_sensors_initialized
 		    && fRunPreArmChecks
-		    && ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-			|| (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
+		    && ((my_new_arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED) || (my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED)
+			|| (my_new_arming_state == vehicle_status_s::ARMING_STATE_MON_STANDBY) || (my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY))
 		    && !hil_enabled) {
 
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
@@ -197,11 +225,11 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		}
 
 		// Check that we have a valid state transition
-		bool valid_transition = arming_transitions[new_arming_state][status->arming_state];
+		bool valid_transition = arming_transitions[my_new_arming_state][status->arming_state];
 
 		if (valid_transition) {
 			// We have a good transition. Now perform any secondary validation.
-			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			if (my_new_arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED || my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED) {
 
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if vehicle_status_s::HIL_STATE_ON
@@ -228,19 +256,19 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 			status_flags->condition_system_sensors_initialized = true;
 
 			/* recover from a prearm fail */
-			if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
-				status->arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
+			if (status->arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY_ERROR) {
+				status->arming_state = vehicle_status_s::ARMING_STATE_OP_STANDBY;
 			}
 
 			// HIL can always go to standby
-			if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+			if (my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY) {
 				valid_transition = true;
 			}
 		}
 
 		if (!hil_enabled &&
-		    (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-		    (status->arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
+		    (my_new_arming_state == vehicle_status_s::ARMING_STATE_MON_STANDBY || my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY) &&
+		    (status->arming_state != vehicle_status_s::ARMING_STATE_MON_STANDBY_ERROR && status->arming_state != vehicle_status_s::ARMING_STATE_OP_STANDBY_ERROR )) {
 
 			// Sensors need to be initialized for STANDBY state, except for HIL
 			if (!status_flags->condition_system_sensors_initialized) {
@@ -251,13 +279,13 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 		// Finish up the state transition
 		if (valid_transition) {
-			armed->armed = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			armed->ready_to_arm = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-					      || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
+			armed->armed = (my_new_arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED || my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED);
+			armed->ready_to_arm = (my_new_arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED) || (my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED)
+					      || (my_new_arming_state == vehicle_status_s::ARMING_STATE_MON_STANDBY) || (my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY);
 			ret = TRANSITION_CHANGED;
-			status->arming_state = new_arming_state;
+			status->arming_state = my_new_arming_state;
 
-			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			if (my_new_arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED) {
 				armed->armed_time_ms = hrt_absolute_time() / 1000;
 
 			} else {
@@ -270,7 +298,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
 			mavlink_log_critical(mavlink_log_pub, "Transition denied: %s to %s",
-					     arming_state_names[status->arming_state], arming_state_names[new_arming_state]);
+					     arming_state_names[status->arming_state], arming_state_names[my_new_arming_state]);
 		}
 	}
 
@@ -422,7 +450,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
  */
 void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub, const char *reason)
 {
-	if (!old_failsafe && status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	if (!old_failsafe && status->arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED) {
 		mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s", reason);
 	}
 
@@ -444,7 +472,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	const bool rc_loss_act_configured = rc_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_lost = rc_loss_act_configured && (status->rc_signal_lost);
 
-	bool is_armed = (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	bool is_armed = (status->arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED) || (status->arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED);
 	bool old_failsafe = status->failsafe;
 	status->failsafe = false;
 

@@ -107,9 +107,11 @@ if [ $IS_REDUNDANT -eq 1 ]
 then
 param set MAV_SYS_ID 1
 param set MAV_COMP_ID 25
+param set COM_RED_BEH 0
 else
 param set MAV_SYS_ID $((px4_instance+1))
 param set MAV_COMP_ID 1
+param set COM_RED_BEH 1
 fi
 
 
@@ -235,10 +237,10 @@ sh "$autostart_file"
 dataman start
 replay tryapplyparams
 simulator start -u $simulator_udp_port
-if [ $IS_REDUNDANT -eq 1 ]
-then
-	simulator pause
-fi
+# if [ $IS_REDUNDANT -eq 1 ]
+# then
+	# simulator pause	//redundant behavior implemente edildi.
+# fi
 tone_alarm start
 gpssim start
 sensors start

@@ -58,6 +58,7 @@
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/uORB.h>
+#include "modules/commander/RedundancyManager.hpp"
 
 using matrix::wrap_2pi;
 
@@ -535,7 +536,7 @@ void MavlinkStreamHighLatency2::update_vehicle_status()
 	vehicle_status_s status;
 
 	if (_status_sub->update(&status)) {
-		if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		if (anyArmed(status.arming_state)) {
 			struct actuator_controls_s actuator = {};
 
 			if (status.is_vtol && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {

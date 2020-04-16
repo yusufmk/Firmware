@@ -922,3 +922,15 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
+
+/**
+ * Default redundant behavior
+ *
+ * if 1, it is operating flight controller, if 0 it is monitoring flight controller.
+ *
+ * @group Commander
+ * @reboot_required true
+ * @value 0 Monitoring FCS
+ * @value 1 Operating FCS
+ */
+PARAM_DEFINE_INT32(COM_RED_BEH, 1);

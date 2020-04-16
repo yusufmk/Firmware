@@ -53,6 +53,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include "modules/commander/RedundancyManager.hpp"
 
 using matrix::wrap_pi;
 
@@ -541,7 +542,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	case NAV_CMD_TAKEOFF:
 
 		// if already flying (armed and !landed) treat TAKEOFF like regular POSITION
-		if ((_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+		if ((anyArmed(_navigator->get_vstatus()->arming_state))
 		    && !_navigator->get_land_detected()->landed && !_navigator->get_land_detected()->maybe_landed) {
 
 			sp->type = position_setpoint_s::SETPOINT_TYPE_POSITION;

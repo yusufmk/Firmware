@@ -58,6 +58,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
+#include "modules/commander/RedundancyManager.hpp"
 
 Mission::Mission(Navigator *navigator) :
 	MissionBlock(navigator),
@@ -1678,11 +1679,11 @@ bool
 Mission::need_to_reset_mission(bool active)
 {
 	/* reset mission state when disarmed */
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED && _need_mission_reset) {
+	if (!anyArmed(_navigator->get_vstatus()->arming_state) && _need_mission_reset) {
 		_need_mission_reset = false;
 		return true;
 
-	} else if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED && active) {
+	} else if (anyArmed(_navigator->get_vstatus()->arming_state) && active) {
 		/* mission is running, need reset after disarm */
 		_need_mission_reset = true;
 	}

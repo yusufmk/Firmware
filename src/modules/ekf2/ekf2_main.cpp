@@ -820,7 +820,8 @@ void Ekf2::run()
 					}
 				}
 
-				if ((vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) && (_invalid_mag_id_count > 100)) {
+				if ((vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_MON_ARMED && vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_OP_ARMED) &&
+					(_invalid_mag_id_count > 100)) {
 					// the sensor ID used for the last saved mag bias is not confirmed to be the same as the current sensor ID
 					// this means we need to reset the learned bias values to zero
 					_param_ekf2_magbias_x.set(0.f);
@@ -1353,7 +1354,7 @@ void Ekf2::run()
 				}
 
 				// only consider ground effect if compensation is configured and the vehicle is armed (props spinning)
-				if (_param_ekf2_gnd_eff_dz.get() > 0.0f && vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				if (_param_ekf2_gnd_eff_dz.get() > 0.0f && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED || vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED)) {
 					// set ground effect flag if vehicle is closer than a specified distance to the ground
 					if (lpos.dist_bottom_valid) {
 						_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
@@ -1559,7 +1560,7 @@ void Ekf2::run()
 
 				// Check if conditions are OK for learning of magnetometer bias values
 				if (!vehicle_land_detected.landed && // not on ground
-				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) && // vehicle is armed
+				    (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_MON_ARMED || vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED) && // vehicle is armed
 				    !status.filter_fault_flags && // there are no filter faults
 				    control_status.flags.mag_3D) { // the EKF is operating in the correct mode
 
@@ -1609,7 +1610,7 @@ void Ekf2::run()
 				}
 
 				// Check and save the last valid calibration when we are disarmed
-				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)
+				if ((vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_MON_STANDBY || vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY)
 				    && (status.filter_fault_flags == 0)
 				    && (sensor_selection.mag_device_id == (uint32_t)_param_ekf2_magbias_id.get())) {
 
@@ -1625,7 +1626,7 @@ void Ekf2::run()
 
 			publish_wind_estimate(now);
 
-			if (!_mag_decl_saved && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY)) {
+			if (!_mag_decl_saved && (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_MON_STANDBY || vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY)) {
 				_mag_decl_saved = update_mag_decl(_param_ekf2_mag_decl);
 			}
 
@@ -1655,7 +1656,7 @@ void Ekf2::run()
 				_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
-				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_MON_STANDBY || vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_OP_STANDBY) {
 					// calculate coefficients for LPF applied to innovation sequences
 					float alpha = constrain(sensors.accelerometer_integral_dt / 1.e6f * _innov_lpf_tau_inv, 0.0f, 1.0f);
 					float beta = 1.0f - alpha;

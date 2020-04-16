@@ -50,6 +50,7 @@
 #include <mathlib/mathlib.h>
 
 #include <limits>
+#include "modules/commander/RedundancyManager.hpp"
 
 #ifdef ENABLE_UART_RC_INPUT
 #ifndef B460800
@@ -82,7 +83,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 
 	msg.time_usec = hrt_absolute_time() + hrt_absolute_time_offset();
 
-	bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	bool armed = anyArmed(_vehicle_status.arming_state);
 
 	const float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
 
@@ -177,7 +178,7 @@ void Simulator::send_controls()
 	bool updated = false;
 	orb_check(_actuator_outputs_sub, &updated);
 
-	if (updated) {
+	if (updated && !anyMon(_vehicle_status.arming_state)) {
 		actuator_outputs_s actuators{};
 		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &actuators);
 
@@ -424,7 +425,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 		const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
 
-		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		bool armed = anyArmed(_vehicle_status.arming_state);
 
 		if (!armed || batt_sim_start == 0 || batt_sim_start > now_us) {
 			batt_sim_start = now_us;
@@ -716,7 +717,7 @@ void Simulator::send_heartbeat(simulator::mavlinkTarget trg)
 	mavlink_heartbeat_t hb = {};
 	mavlink_message_t message = {};
 	hb.autopilot = 12;
-	hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
+	hb.base_mode |= anyArmed(_vehicle_status.arming_state) ? 128 : 0;
 	mavlink_msg_heartbeat_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hb);
 	send_mavlink_message(message, trg);
 }

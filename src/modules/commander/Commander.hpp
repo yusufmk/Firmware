@@ -64,6 +64,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 
+#include "modules/commander/RedundancyManager.hpp"
+
 using math::constrain;
 
 using namespace time_literals;
@@ -135,8 +137,9 @@ private:
 
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
-		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act
-
+		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
+		(ParamInt<px4::params::COM_RED_BEH>) _param_com_red_beh,
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_comp_id
 	)
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */

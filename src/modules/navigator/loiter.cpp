@@ -41,6 +41,7 @@
 
 #include "loiter.h"
 #include "navigator.h"
+#include "modules/commander/RedundancyManager.hpp"
 
 Loiter::Loiter(Navigator *navigator) :
 	MissionBlock(navigator),
@@ -73,7 +74,7 @@ Loiter::on_active()
 	}
 
 	// reset the loiter position if we get disarmed
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+	if (!anyArmed(_navigator->get_vstatus()->arming_state)) {
 		_loiter_pos_set = false;
 	}
 }
@@ -81,7 +82,7 @@ Loiter::on_active()
 void
 Loiter::set_loiter_position()
 {
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED &&
+	if (!anyArmed(_navigator->get_vstatus()->arming_state) &&
 	    _navigator->get_land_detected()->landed) {
 
 		// Not setting loiter position if disarmed and landed, instead mark the current
@@ -119,7 +120,7 @@ void
 Loiter::reposition()
 {
 	// we can't reposition if we are not armed yet
-	if (_navigator->get_vstatus()->arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+	if (!anyArmed(_navigator->get_vstatus()->arming_state)) {
 		return;
 	}
 

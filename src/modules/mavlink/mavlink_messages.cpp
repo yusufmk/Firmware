@@ -106,6 +106,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/uORB.h>
+#include "modules/commander/RedundancyManager.hpp"
 
 using matrix::wrap_2pi;
 
@@ -139,7 +140,7 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 	}
 
 	/* arming state */
-	if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	if (anyArmed(status->arming_state)) {
 		*mavlink_base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	}
 
@@ -281,13 +282,13 @@ void get_mavlink_mode_state(const struct vehicle_status_s *const status, uint8_t
 	/* set system state */
 	if (status->arming_state == vehicle_status_s::ARMING_STATE_INIT
 	    || status->arming_state == vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE
-	    || status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {	// TODO review
+	    || anyStandbyError(status->arming_state)) {	// TODO review
 		*mavlink_state = MAV_STATE_UNINIT;
 
-	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+	} else if (anyArmed(status->arming_state)) {
 		*mavlink_state = MAV_STATE_ACTIVE;
 
-	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+	} else if (anyStandby(status->arming_state)) {
 		*mavlink_state = MAV_STATE_STANDBY;
 
 	} else if (status->arming_state == vehicle_status_s::ARMING_STATE_REBOOT) {
@@ -1871,7 +1872,7 @@ protected:
 
 		// Handle flight state
 		if (_vehicle_status_time > 0 && _land_detected_time > 0
-		    && _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		    && anyArmed(_vehicle_status.arming_state)) {
 			if (_land_detected.landed) {
 				msg.flight_state |= UTM_FLIGHT_STATE_GROUND;
 
@@ -2976,7 +2977,7 @@ protected:
 			vehicle_status_s status = {};
 			_status_sub->update(&status);
 
-			if ((status.timestamp > 0) && (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+			if ((status.timestamp > 0) && anyArmed(status.arming_state)) {
 				/* translate the current system state to mavlink state and mode */
 				uint8_t mavlink_state;
 				uint8_t mavlink_base_mode;
@@ -4115,7 +4116,7 @@ protected:
 			msg.param2 = 0;
 			msg.param3 = 0;
 			/* set camera capture ON/OFF depending on arming state */
-			msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1 : 0;
+			msg.param4 = (status.arming_state == vehicle_status_s::ARMING_STATE_OP_ARMED) ? 1 : 0;
 			msg.param5 = 0;
 			msg.param6 = 0;
 			msg.param7 = 0;
