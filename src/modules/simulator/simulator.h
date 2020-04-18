@@ -74,6 +74,7 @@
 
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
+#include <v2.0/ardupilotmega/mavlink.h>
 
 namespace simulator
 {

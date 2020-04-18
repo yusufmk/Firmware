@@ -31,6 +31,17 @@ nice -n 20 gzclient --verbose & GUI_PID=`echo $!`
 # /home/nighthawk/px4_related/Firmware/build/px4_sitl_default/bin/px4 -s etc/init.d-posix/rcS -t home/nighthawk/px4_related/Firmware/test_data /home/nighthawk/px4_related/Firmware/ROMFS/px4fmu_common -i 0 -r 1  # & \
 # xterm -hold -e /home/nighthawk/px4_related/Firmware/build/px4_sitl_default/bin/px4 -i 1 /home/nighthawk/px4_related/Firmware/ROMFS/px4fmu_common -s etc/init.d-posix/rcS -t home/nighthawk/px4_related/Firmware/test_data
 
+sleep 3
+
+SERVICE="QGroundControl"
+if pgrep -x "$SERVICE" >/dev/null
+then
+    echo "$SERVICE is already running"
+else
+    /home/nighthawk/px4_related/build-qgroundcontrol-Desktop_Qt_5_12_6_GCC_64bit-Debug/debug/qgroundcontrol-start.sh &
+fi
+sleep 1
+
 # popd >/dev/null
 valid=true
 while [ $valid ]

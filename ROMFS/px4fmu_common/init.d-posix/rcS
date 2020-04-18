@@ -107,9 +107,11 @@ if [ $IS_REDUNDANT -eq 1 ]
 then
 param set MAV_SYS_ID 1
 param set MAV_COMP_ID 25
+param set COM_RED_ROLE 0
 else
 param set MAV_SYS_ID $((px4_instance+1))
 param set MAV_COMP_ID 1
+param set COM_RED_ROLE 1
 fi
 
 
@@ -235,10 +237,10 @@ sh "$autostart_file"
 dataman start
 replay tryapplyparams
 simulator start -u $simulator_udp_port
-if [ $IS_REDUNDANT -eq 1 ]
-then
-	simulator pause
-fi
+# if [ $IS_REDUNDANT -eq 1 ]
+# then
+# 	simulator pause
+# fi
 tone_alarm start
 gpssim start
 sensors start
@@ -278,6 +280,7 @@ mavlink stream -r 50 -s ATTITUDE_TARGET -u $udp_gcs_port_local
 mavlink stream -r 50 -s SERVO_OUTPUT_RAW_0 -u $udp_gcs_port_local
 mavlink stream -r 20 -s RC_CHANNELS -u $udp_gcs_port_local
 mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
+mavlink stream -r 10 -s RED_STATUS -u $udp_gcs_port_local
 
 # API/Offboard link
 mavlink start -x -u $udp_offboard_port_local -r 4000000 -m onboard -o $udp_offboard_port_remote

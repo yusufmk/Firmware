@@ -54,12 +54,17 @@ uint8 VEHICLE_TYPE_ROTARY_WING = 1
 uint8 VEHICLE_TYPE_FIXED_WING = 2
 uint8 VEHICLE_TYPE_ROVER = 3
 
+uint8 REDUNDANCY_STATE_MONITOR = 0
+uint8 REDUNDANCY_STATE_OPERATE = 1
+uint8 REDUNDANCY_STATE_MAX = 2
+
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
 
 uint8 nav_state				# set navigation state machine to specified value
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
+uint8 red_state
 bool failsafe				# true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
 
 uint8 system_type			# system type, contains mavlink MAV_TYPE
@@ -101,3 +106,4 @@ bool aspd_use_inhibit		# true if switching to a non-airspeed control mode has be
 bool aspd_fail_rtl		# true if airspeed failure invoked RTL has been requested
 float32 load_factor_ratio	# ratio of measured to aerodynamic load factor limit. Greater than 1 indicates airspeed low error condition.
 
+# TOPICS vehicle_status vehicle_status_red

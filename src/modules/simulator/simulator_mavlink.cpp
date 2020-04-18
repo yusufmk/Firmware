@@ -186,18 +186,24 @@ void Simulator::send_controls()
 
 			mavlink_message_t message{};
 			mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
-
-			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
-
-			send_mavlink_message(message, simulator::trgSimulator);
+			if (_vehicle_status.red_state != vehicle_status_s::REDUNDANCY_STATE_MONITOR)
+			{
+				PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
+				send_mavlink_message(message, simulator::trgSimulator);
+			}
 
 			// YUSUF
 			// send_heartbeat();
-			if (++_outputCnt > 250)
+			if (++_outputCnt % 125 == 0)
 			{
 				send_sys_status();
+			}
+			else if (_outputCnt % 249 == 0)
+			{
+				send_heartbeat(simulator::trgRedundantFcs);
 				_outputCnt = 0;
 			}
+
 		}
 	}
 }
@@ -304,11 +310,12 @@ void Simulator::send_sys_status()
 	mavlink_message_t msg;
 	mavlink_sys_status_t sysStat;
 	sysStat.onboard_control_sensors_health = _vehicle_status.onboard_control_sensors_health;
+	sysStat.onboard_control_sensors_present = _vehicle_status.onboard_control_sensors_present;
+	sysStat.onboard_control_sensors_enabled = _vehicle_status.onboard_control_sensors_enabled;
 
 	sysStat.battery_remaining = 0;
 	sysStat.current_battery = 0;
-	sysStat.onboard_control_sensors_present = 0;
-	sysStat.onboard_control_sensors_enabled = 0;
+
 	sysStat.load = 0;
 	sysStat.voltage_battery = 0;
 	sysStat.drop_rate_comm = 0;
@@ -363,9 +370,12 @@ void Simulator::handle_message(const mavlink_message_t *msg)
 			break;
 
 		// YUSUF
-		// case MAVLINK_MSG_ID_HEARTBEAT:
-		// 	handle_message_heartbeat(msg);
-		// 	break;
+		case MAVLINK_MSG_ID_HEARTBEAT:
+			if (msg->compid != _param_mav_comp_id.get())
+			{
+				handle_message_heartbeat(msg);
+			}
+			break;
 
 		case MAVLINK_MSG_ID_SYS_STATUS:
 			if (msg->compid != _param_mav_comp_id.get())
@@ -596,11 +606,11 @@ void Simulator::handle_message_heartbeat(const mavlink_message_t *msg)
 void Simulator::handle_message_sys_status(const mavlink_message_t *msg)
 {
 	PX4_INFO("handle_message_sys_status icine girdi gelen compid:%d msgid:%d", msg->compid, msg->msgid);
-
+	// mavlink_data16_t hop;
 	mavlink_sys_status_t redSysStatus;
 	mavlink_msg_sys_status_decode(msg, &redSysStatus);
 	_red_vehicle_status.onboard_control_sensors_health = redSysStatus.onboard_control_sensors_health;
-	// orb_publish(ORB_ID(vehicle_status_red), &_red_vehicle_status_pub, &_red_vehicle_status);
+	orb_publish(ORB_ID(vehicle_status_red), &_red_vehicle_status_pub, &_red_vehicle_status);
 }
 
 void Simulator::send_mavlink_message(const mavlink_message_t &aMsg, simulator::mavlinkTarget aTrg)

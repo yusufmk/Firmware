@@ -42,6 +42,8 @@
 #define MAVLINK_MESSAGES_H_
 
 #include "mavlink_stream.h"
+// #include <v2.0/ardupilotmega/mavlink.h>
+#include <v2.0/ardupilotmega/mavlink_msg_data16.h>
 
 class StreamListItem
 {

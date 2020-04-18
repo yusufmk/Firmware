@@ -126,7 +126,7 @@ cm_uint16_from_m_float(float m)
 
 	return (uint16_t)(m * 100.0f);
 }
-
+// yusuf bu fonk kullan?
 void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, uint8_t *mavlink_base_mode,
 				 union px4_custom_mode *custom_mode)
 {
@@ -266,7 +266,7 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 
 	}
 }
-
+//yusuf bu fonk kullan
 void get_mavlink_mode_state(const struct vehicle_status_s *const status, uint8_t *mavlink_state,
 			    uint8_t *mavlink_base_mode, uint32_t *mavlink_custom_mode)
 {
@@ -4834,6 +4834,72 @@ protected:
 	}
 };
 
+class MavlinkStreamRedStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamRedStatus::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "RED_STATUS";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_DATA16;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamRedStatus(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_DATA16_LEN +
+		       MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_sub;
+	uint64_t _red_status_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamRedStatus(MavlinkStreamRedStatus &);
+	MavlinkStreamRedStatus &operator = (const MavlinkStreamRedStatus &);
+
+protected:
+	explicit MavlinkStreamRedStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
+		_red_status_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		struct vehicle_status_s _veh_status;
+
+		if (_sub->update(&_red_status_time, &_veh_status)) {
+			mavlink_data16_t _msg_data16 = {};
+
+			_msg_data16.type = 0;
+			_msg_data16.len = 1;
+			_msg_data16.data[0] = _veh_status.red_state;
+
+			mavlink_msg_data16_send_struct(_mavlink->get_channel(), &_msg_data16);
+		}
+
+		return true;
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -4891,7 +4957,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHighLatency2::new_instance, &MavlinkStreamHighLatency2::get_name_static, &MavlinkStreamHighLatency2::get_id_static),
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
-	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static)
+	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
+	StreamListItem(&MavlinkStreamRedStatus::new_instance, &MavlinkStreamRedStatus::get_name_static, &MavlinkStreamRedStatus::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)

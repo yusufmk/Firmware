@@ -565,6 +565,9 @@ Commander::Commander() :
 	status_flags.offboard_control_signal_lost = true;
 	status.data_link_lost = true;
 
+	//redundancy state'i redundancy role parametresine gore baslat,
+	status.red_state = _param_com_red_role.get() ? vehicle_status_s::REDUNDANCY_STATE_OPERATE : vehicle_status_s::REDUNDANCY_STATE_MONITOR;
+
 	status_flags.condition_power_input_valid = true;
 	status_flags.rc_calibration_valid = true;
 
