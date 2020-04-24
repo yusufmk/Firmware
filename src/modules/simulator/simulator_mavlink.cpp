@@ -194,13 +194,19 @@ void Simulator::send_controls()
 
 			// YUSUF
 			// send_heartbeat();
-			if (++_outputCnt % 125 == 0)
+			// if (++_outputCnt % 125 == 0)
+			// {
+			// 	send_sys_status();
+			// }
+			// else if (_outputCnt % 249 == 0)
+			// {
+			// 	send_heartbeat(simulator::trgRedundantFcs);
+			// 	_outputCnt = 0;
+			// }
+
+			if (++_outputCnt % 250 == 0)
 			{
-				send_sys_status();
-			}
-			else if (_outputCnt % 249 == 0)
-			{
-				send_heartbeat(simulator::trgRedundantFcs);
+				send_veh_status();
 				_outputCnt = 0;
 			}
 
@@ -329,6 +335,46 @@ void Simulator::send_sys_status()
 	send_mavlink_message(msg, simulator::trgRedundantFcs);
 }
 
+void Simulator::send_veh_status()
+{
+	mavlink_message_t msg;
+	mavlink_mvl_vehicle_status_t vehStat;
+
+	vehStat.timestamp = _vehicle_status.timestamp;
+	vehStat.onboard_control_sensors_health = _vehicle_status.onboard_control_sensors_health;
+	vehStat.onboard_control_sensors_present = _vehicle_status.onboard_control_sensors_present;
+	vehStat.onboard_control_sensors_enabled = _vehicle_status.onboard_control_sensors_enabled;
+	vehStat.arspd_check_level = _vehicle_status.arspd_check_level;
+	vehStat.load_factor_ratio = _vehicle_status.load_factor_ratio;
+	vehStat.nav_state = _vehicle_status.nav_state;
+	vehStat.arming_state = _vehicle_status.arming_state;
+	vehStat.hil_state = _vehicle_status.hil_state;
+	vehStat.red_state = _vehicle_status.red_state;
+	vehStat.failsafe = _vehicle_status.failsafe;
+	vehStat.system_type = _vehicle_status.system_type;
+	vehStat.vehicle_type = _vehicle_status.vehicle_type;
+	vehStat.is_vtol = _vehicle_status.is_vtol;
+	vehStat.vtol_fw_permanent_stab = _vehicle_status.vtol_fw_permanent_stab;
+	vehStat.in_transition_mode = _vehicle_status.in_transition_mode;
+	vehStat.in_transition_to_fw = _vehicle_status.in_transition_to_fw;
+	vehStat.rc_signal_lost = _vehicle_status.rc_signal_lost;
+	vehStat.rc_input_mode = _vehicle_status.rc_input_mode;
+	vehStat.data_link_lost = _vehicle_status.data_link_lost;
+	vehStat.data_link_lost_counter = _vehicle_status.data_link_lost_counter;
+	vehStat.high_latency_data_link_lost = _vehicle_status.high_latency_data_link_lost;
+	vehStat.engine_failure = _vehicle_status.engine_failure;
+	vehStat.mission_failure = _vehicle_status.mission_failure;
+	vehStat.failure_detector_status = _vehicle_status.failure_detector_status;
+	vehStat.aspd_check_failing = _vehicle_status.aspd_check_failing;
+	vehStat.aspd_fault_declared = _vehicle_status.aspd_fault_declared;
+	vehStat.aspd_use_inhibit = _vehicle_status.aspd_use_inhibit;
+	vehStat.aspd_fail_rtl = _vehicle_status.aspd_fail_rtl;
+
+	mavlink_msg_mvl_vehicle_status_encode(_param_mav_sys_id.get(),_param_mav_comp_id.get(), &msg, &vehStat);
+	send_mavlink_message(msg, simulator::trgRedundantFcs);
+}
+
+
 
 void Simulator::handle_message(const mavlink_message_t *msg)
 {
@@ -383,6 +429,13 @@ void Simulator::handle_message(const mavlink_message_t *msg)
 				handle_message_sys_status(msg);
 			}
 			break;
+
+		case MAVLINK_MSG_ID_MVL_VEHICLE_STATUS:
+			if (msg->compid != _param_mav_comp_id.get())
+			{
+				handle_message_veh_status(msg);
+			}
+
 		}
 
 }
@@ -606,11 +659,55 @@ void Simulator::handle_message_heartbeat(const mavlink_message_t *msg)
 void Simulator::handle_message_sys_status(const mavlink_message_t *msg)
 {
 	PX4_INFO("handle_message_sys_status icine girdi gelen compid:%d msgid:%d", msg->compid, msg->msgid);
-	// mavlink_data16_t hop;
+
 	mavlink_sys_status_t redSysStatus;
 	mavlink_msg_sys_status_decode(msg, &redSysStatus);
 	_red_vehicle_status.onboard_control_sensors_health = redSysStatus.onboard_control_sensors_health;
-	orb_publish(ORB_ID(vehicle_status_red), &_red_vehicle_status_pub, &_red_vehicle_status);
+	// orb_publish(ORB_ID(vehicle_status_red), &_red_vehicle_status_pub, &_red_vehicle_status);
+}
+
+void Simulator::handle_message_veh_status(const mavlink_message_t *msg)
+{
+	// PX4_INFO("handle_message_veh_status icine girdi gelen compid:%d msgid:%d", msg->compid, msg->msgid);
+
+	mavlink_mvl_vehicle_status_t redVehStatus;
+	mavlink_msg_mvl_vehicle_status_decode(msg, &redVehStatus);
+
+	_red_vehicle_status.timestamp = redVehStatus.timestamp;
+	_red_vehicle_status.onboard_control_sensors_health = redVehStatus.onboard_control_sensors_health;
+	_red_vehicle_status.onboard_control_sensors_present = redVehStatus.onboard_control_sensors_present;
+	_red_vehicle_status.onboard_control_sensors_enabled = redVehStatus.onboard_control_sensors_enabled;
+	_red_vehicle_status.arspd_check_level = redVehStatus.arspd_check_level;
+	_red_vehicle_status.load_factor_ratio = redVehStatus.load_factor_ratio;
+	_red_vehicle_status.nav_state = redVehStatus.nav_state;
+	_red_vehicle_status.arming_state = redVehStatus.arming_state;
+	_red_vehicle_status.hil_state = redVehStatus.hil_state;
+	_red_vehicle_status.red_state = redVehStatus.red_state;
+	_red_vehicle_status.failsafe = redVehStatus.failsafe;
+	_red_vehicle_status.system_type = redVehStatus.system_type;
+	_red_vehicle_status.vehicle_type = redVehStatus.vehicle_type;
+	_red_vehicle_status.is_vtol = redVehStatus.is_vtol;
+	_red_vehicle_status.vtol_fw_permanent_stab = redVehStatus.vtol_fw_permanent_stab;
+	_red_vehicle_status.in_transition_mode = redVehStatus.in_transition_mode;
+	_red_vehicle_status.in_transition_to_fw = redVehStatus.in_transition_to_fw;
+	_red_vehicle_status.rc_signal_lost = redVehStatus.rc_signal_lost;
+	_red_vehicle_status.rc_input_mode = redVehStatus.rc_input_mode;
+	_red_vehicle_status.data_link_lost = redVehStatus.data_link_lost;
+	_red_vehicle_status.data_link_lost_counter = redVehStatus.data_link_lost_counter;
+	_red_vehicle_status.high_latency_data_link_lost = redVehStatus.high_latency_data_link_lost;
+	_red_vehicle_status.engine_failure = redVehStatus.engine_failure;
+	_red_vehicle_status.mission_failure = redVehStatus.mission_failure;
+	_red_vehicle_status.failure_detector_status = redVehStatus.failure_detector_status;
+	_red_vehicle_status.aspd_check_failing = redVehStatus.aspd_check_failing;
+	_red_vehicle_status.aspd_fault_declared = redVehStatus.aspd_fault_declared;
+	_red_vehicle_status.aspd_use_inhibit = redVehStatus.aspd_use_inhibit;
+	_red_vehicle_status.aspd_fail_rtl = redVehStatus.aspd_fail_rtl;
+
+	_red_vehicle_status.system_id = msg->sysid;
+	_red_vehicle_status.component_id = msg->compid;
+
+	// orb_publish(ORB_ID(vehicle_status_red), &_red_vehicle_status_pub, &_red_vehicle_status);
+	orb_publish_auto(ORB_ID(vehicle_status_red), &_red_vehicle_status_pub, &_red_vehicle_status, nullptr, ORB_PRIO_DEFAULT);
 }
 
 void Simulator::send_mavlink_message(const mavlink_message_t &aMsg, simulator::mavlinkTarget aTrg)

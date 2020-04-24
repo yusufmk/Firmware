@@ -72,9 +72,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include <v2.0/common/mavlink.h>
+#include <v2.0/turkishTechnic/mavlink.h>
 #include <v2.0/mavlink_types.h>
-#include <v2.0/ardupilotmega/mavlink.h>
 
 namespace simulator
 {
@@ -275,10 +274,11 @@ private:
 	void handle_message_rc_channels(const mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
 
+
 	// YUSUF
 	void handle_message_heartbeat(const mavlink_message_t *msg);
 	void handle_message_sys_status(const mavlink_message_t *msg);
-
+	void handle_message_veh_status(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
 	void poll_topics();
@@ -294,6 +294,7 @@ private:
 
 	// YUSUF
 	void send_sys_status();
+	void send_veh_status();
 
 	static void *sending_trampoline(void *);
 
