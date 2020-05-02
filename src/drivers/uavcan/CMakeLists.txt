@@ -100,6 +100,7 @@ px4_add_module(
 
 		# Other
 		other/tt_device.cpp
+		other/il_insp.cpp
 
 	DEPENDS
 		mixer

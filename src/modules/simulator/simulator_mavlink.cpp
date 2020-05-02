@@ -482,6 +482,25 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	update_sensors(now_us, imu);
 
+	_myAccel.timestamp = now_us;
+	_myAccel.error_count = 0;
+	_myAccel.device_id = 12345;
+	_myAccel.x = 1;
+	_myAccel.y = 2;
+	_myAccel.z = 3;
+	_myAccel.integral_dt = 4;
+	_myAccel.x_integral = 10;
+	_myAccel.y_integral = 11;
+	_myAccel.z_integral = 12;
+	_myAccel.temperature = 13;
+	_myAccel.scaling = 1;
+	_myAccel.x_raw = 32;
+	_myAccel.y_raw = 33;
+	_myAccel.z_raw = 34;
+
+	int myInstance;
+	orb_publish_auto(ORB_ID(sensor_accel), &_myAccel_pub, &_myAccel, &myInstance, ORB_PRIO_DEFAULT);
+
 	// battery simulation (limit update to 100Hz)
 	if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
 

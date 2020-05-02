@@ -67,6 +67,7 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/sensor_accel.h>
 
 // YUSUF
 #include <sys/socket.h>
@@ -243,6 +244,9 @@ private:
 	orb_advert_t _flow_pub{nullptr};
 	orb_advert_t _irlock_report_pub{nullptr};
 	orb_advert_t _visual_odometry_pub{nullptr};
+
+	orb_advert_t _myAccel_pub{nullptr};
+	sensor_accel_s _myAccel{};
 
 	int _param_sub{-1};
 
