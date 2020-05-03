@@ -59,6 +59,7 @@
 #include "rc_calibration.h"
 #include "state_machine_helper.h"
 #include "health_flag_helper.h"
+#include "RedundancyManager.hpp"
 
 /* PX4 headers */
 #include <dataman/dataman.h>
@@ -137,6 +138,7 @@ static uint64_t last_print_mode_reject_time = 0;
 static float min_stick_change = 0.25f;
 
 static struct vehicle_status_s status = {};
+static struct vehicle_status_s red_status = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
 static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
@@ -762,6 +764,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 			// Adhere to MAVLink specs, but base on knowledge that these fundamentally encode ints
 			// for logic state parameters
+			PX4_WARN("arm_disarm timestamp: %lu", hrt_absolute_time());
 			if (static_cast<int>(cmd.param1 + 0.5f) != 0 && static_cast<int>(cmd.param1 + 0.5f) != 1) {
 				mavlink_log_critical(&mavlink_log_pub, "Unsupported ARM_DISARM param: %.3f", (double)cmd.param1);
 
@@ -769,9 +772,10 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 				bool cmd_arms = (static_cast<int>(cmd.param1 + 0.5f) == 1);
 
+				// YUSUF COMMENT BURAYI DEGISTIRDIM !!!!!!!!!!!!!!!!!!!!!!!!
 				// Flick to inair restore first if this comes from an onboard system
 				if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
-					status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
+					// status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
 
 				} else {
 					// Refuse to arm if preflight checks have failed
@@ -932,6 +936,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH: {
+			PX4_WARN("return_to_launch timestamp: %lu", hrt_absolute_time());
 			/* switch to RTL which ends the mission */
 			if (TRANSITION_CHANGED == main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
 					&internal_state)) {
@@ -2192,6 +2197,10 @@ Commander::run()
 
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
+
+		// check redundant fcs
+		_red_status_sub.update(&red_status);
+		checkRedStatus(&red_status, &status, _red_status_sub.last_update(), _red_status_sub.published());
 
 		// automatically set or update home position
 		if (!_home_pub.get().manual_home) {

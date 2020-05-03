@@ -186,8 +186,8 @@ void Simulator::send_controls()
 
 			mavlink_message_t message{};
 			mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
-			if (_vehicle_status.red_state != vehicle_status_s::REDUNDANCY_STATE_MONITOR)
-			{
+
+			if (_vehicle_status.red_state != vehicle_status_s::REDUNDANCY_STATE_MONITOR) {
 				PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
 				send_mavlink_message(message, simulator::trgSimulator);
 			}
@@ -204,8 +204,7 @@ void Simulator::send_controls()
 			// 	_outputCnt = 0;
 			// }
 
-			if (++_outputCnt % 250 == 0)
-			{
+			if (++_outputCnt % 25 == 0) {
 				send_veh_status();
 				_outputCnt = 0;
 			}
@@ -331,7 +330,7 @@ void Simulator::send_sys_status()
 	sysStat.errors_count3 = 0;
 	sysStat.errors_count4 = 0;
 
-	mavlink_msg_sys_status_encode(_param_mav_sys_id.get(),_param_mav_comp_id.get(), &msg, &sysStat);
+	mavlink_msg_sys_status_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &msg, &sysStat);
 	send_mavlink_message(msg, simulator::trgRedundantFcs);
 }
 
@@ -370,7 +369,7 @@ void Simulator::send_veh_status()
 	vehStat.aspd_use_inhibit = _vehicle_status.aspd_use_inhibit;
 	vehStat.aspd_fail_rtl = _vehicle_status.aspd_fail_rtl;
 
-	mavlink_msg_mvl_vehicle_status_encode(_param_mav_sys_id.get(),_param_mav_comp_id.get(), &msg, &vehStat);
+	mavlink_msg_mvl_vehicle_status_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &msg, &vehStat);
 	send_mavlink_message(msg, simulator::trgRedundantFcs);
 }
 
@@ -378,65 +377,64 @@ void Simulator::send_veh_status()
 
 void Simulator::handle_message(const mavlink_message_t *msg)
 {
-		switch (msg->msgid) {
-		case MAVLINK_MSG_ID_HIL_SENSOR:
-			handle_message_hil_sensor(msg);
-			break;
+	switch (msg->msgid) {
+	case MAVLINK_MSG_ID_HIL_SENSOR:
+		handle_message_hil_sensor(msg);
+		break;
 
-		case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
-			handle_message_optical_flow(msg);
-			break;
+	case MAVLINK_MSG_ID_HIL_OPTICAL_FLOW:
+		handle_message_optical_flow(msg);
+		break;
 
-		case MAVLINK_MSG_ID_ODOMETRY:
-			handle_message_odometry(msg);
-			break;
+	case MAVLINK_MSG_ID_ODOMETRY:
+		handle_message_odometry(msg);
+		break;
 
-		case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
-			handle_message_vision_position_estimate(msg);
-			break;
+	case MAVLINK_MSG_ID_VISION_POSITION_ESTIMATE:
+		handle_message_vision_position_estimate(msg);
+		break;
 
-		case MAVLINK_MSG_ID_DISTANCE_SENSOR:
-			handle_message_distance_sensor(msg);
-			break;
+	case MAVLINK_MSG_ID_DISTANCE_SENSOR:
+		handle_message_distance_sensor(msg);
+		break;
 
-		case MAVLINK_MSG_ID_HIL_GPS:
-			handle_message_hil_gps(msg);
-			break;
+	case MAVLINK_MSG_ID_HIL_GPS:
+		handle_message_hil_gps(msg);
+		break;
 
-		case MAVLINK_MSG_ID_RC_CHANNELS:
-			handle_message_rc_channels(msg);
-			break;
+	case MAVLINK_MSG_ID_RC_CHANNELS:
+		handle_message_rc_channels(msg);
+		break;
 
-		case MAVLINK_MSG_ID_LANDING_TARGET:
-			handle_message_landing_target(msg);
-			break;
+	case MAVLINK_MSG_ID_LANDING_TARGET:
+		handle_message_landing_target(msg);
+		break;
 
-		case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
-			handle_message_hil_state_quaternion(msg);
-			break;
+	case MAVLINK_MSG_ID_HIL_STATE_QUATERNION:
+		handle_message_hil_state_quaternion(msg);
+		break;
 
-		// YUSUF
-		case MAVLINK_MSG_ID_HEARTBEAT:
-			if (msg->compid != _param_mav_comp_id.get())
-			{
-				handle_message_heartbeat(msg);
-			}
-			break;
-
-		case MAVLINK_MSG_ID_SYS_STATUS:
-			if (msg->compid != _param_mav_comp_id.get())
-			{
-				handle_message_sys_status(msg);
-			}
-			break;
-
-		case MAVLINK_MSG_ID_MVL_VEHICLE_STATUS:
-			if (msg->compid != _param_mav_comp_id.get())
-			{
-				handle_message_veh_status(msg);
-			}
-
+	// YUSUF
+	case MAVLINK_MSG_ID_HEARTBEAT:
+		if (msg->compid != _param_mav_comp_id.get()) {
+			handle_message_heartbeat(msg);
 		}
+
+		break;
+
+	case MAVLINK_MSG_ID_SYS_STATUS:
+		if (msg->compid != _param_mav_comp_id.get()) {
+			handle_message_sys_status(msg);
+		}
+
+		break;
+
+	case MAVLINK_MSG_ID_MVL_VEHICLE_STATUS:
+		if (msg->compid != _param_mav_comp_id.get()) {
+			handle_message_veh_status(msg);
+		}
+
+	}
 
 }
 
@@ -721,23 +719,19 @@ void Simulator::send_mavlink_message(const mavlink_message_t &aMsg, simulator::m
 
 	if (_ip == InternetProtocol::UDP)
 	{
-		if (aTrg == simulator::trgSimulator)
-		{
-			if (Simulator::_ciktiVer)
-			{
-				len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
-			}
-		}
-		else
-		{
-			// PX4_INFO("red fcs'e veri gonderildi.");
-			len = ::sendto(red_fcs_socket_fd_, buf, bufLen, 0, (struct sockaddr *)&red_fcs_addr_, red_fcs_addr_len_);
-		}
-	}
-	else // internetProtocol TCP
-	{
 		if (Simulator::_ciktiVer)
 		{
+			if (aTrg == simulator::trgSimulator) {
+				len = ::sendto(_fd, buf, bufLen, 0, (struct sockaddr *)&_srcaddr, sizeof(_srcaddr));
+
+			} else {
+				// PX4_INFO("red fcs'e veri gonderildi.");
+				len = ::sendto(red_fcs_socket_fd_, buf, bufLen, 0, (struct sockaddr *)&red_fcs_addr_, red_fcs_addr_len_);
+			}
+		}
+
+	} else { // internetProtocol TCP
+		if (Simulator::_ciktiVer) {
 			len = ::send(_fd, buf, bufLen, 0);
 		}
 	}
@@ -842,30 +836,27 @@ void Simulator::poll_for_MAVLink_messages()
 	_myaddr.sin_port = htons(_port);
 
 	// YUSUF
-	memset((char*)&red_fcs_addr_,0, sizeof(red_fcs_addr_));
+	memset((char *)&red_fcs_addr_, 0, sizeof(red_fcs_addr_));
 	red_fcs_addr_.sin_family = AF_INET;
 	red_fcs_addr_.sin_addr.s_addr = htonl(INADDR_ANY);
 	red_fcs_addr_len_ = sizeof(red_fcs_addr_);
-	if (_param_mav_comp_id.get() == 1)
-	{
+
+	if (_param_mav_comp_id.get() == 1) {
 		red_fcs_addr_.sin_port = htons(14590);
-		if ((red_fcs_socket_fd_ = socket(AF_INET,SOCK_DGRAM,0)) < 0)
-		{
+
+		if ((red_fcs_socket_fd_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 			PX4_ERR("red socket create failed");
 		}
 
-		if (bind(red_fcs_socket_fd_, (struct sockaddr *)&red_fcs_addr_,red_fcs_addr_len_) < 0 )
-		{
+		if (bind(red_fcs_socket_fd_, (struct sockaddr *)&red_fcs_addr_, red_fcs_addr_len_) < 0) {
 			PX4_ERR("red socket bind failed");
 		}
 
-	}
-	else
-	{
+	} else {
 		// BURALARDA BI BOKLUK VAR
 		red_fcs_addr_.sin_port = htons(14590);
-		if ((red_fcs_socket_fd_ = socket(AF_INET,SOCK_DGRAM,0)) < 0)
-		{
+
+		if ((red_fcs_socket_fd_ = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 			PX4_ERR("red socket create failed for redundant");
 		}
 	}
@@ -1004,13 +995,14 @@ void Simulator::poll_for_MAVLink_messages()
 			// continue;
 		}
 
-		int pret_2 = ::poll(&fds[1],fd_count, 0);
+		int pret_2 = ::poll(&fds[1], fd_count, 0);
 
 		if (pret_2 == 0) {
 			// Timed out.
 			// PX4_WARN("poll 2 timeout");
 			// continue;
 		}
+
 		if (pret_2 < 0) {
 			PX4_ERR("poll 2 error %d, %d", pret, errno);
 			// continue;
@@ -1032,9 +1024,11 @@ void Simulator::poll_for_MAVLink_messages()
 				}
 			}
 		}
+
 		if (fds[1].revents & POLLIN) {
 			// PX4_INFO("burayda gdsafdsf");
-			int len = ::recvfrom(red_fcs_socket_fd_, _buf, sizeof(_buf), 0, (struct sockaddr *)&red_fcs_addr_, (socklen_t *)&red_fcs_addr_len_);
+			int len = ::recvfrom(red_fcs_socket_fd_, _buf, sizeof(_buf), 0, (struct sockaddr *)&red_fcs_addr_,
+					     (socklen_t *)&red_fcs_addr_len_);
 
 			if (len > 0) {
 				mavlink_message_t msg;
