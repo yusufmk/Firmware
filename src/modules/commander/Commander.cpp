@@ -504,6 +504,22 @@ int commander_main(int argc, char *argv[])
 		return (ret ? 0 : 1);
 	}
 
+	if (!strcmp(argv[1], "sw"))
+	{
+		if (status.red_state == 0)
+		{
+			status.red_state = 1;
+			PX4_WARN("red_state = 1 !!!");
+		}
+		else
+		{
+			status.red_state = 0;
+			PX4_WARN("red_state = 0 !!!");
+		}
+		return 0;
+	}
+
+
 	usage("unrecognized command");
 	return 1;
 }
