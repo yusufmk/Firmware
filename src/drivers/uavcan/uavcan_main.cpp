@@ -67,6 +67,7 @@
 #include <uavcan/util/templates.hpp>
 
 #include <uavcan/protocol/param/ExecuteOpcode.hpp>
+#include <systemlib/mavlink_log.h>
 
 //todo:The Inclusion of file_server_backend is killing
 // #include <sys/types.h> and leaving OK undefined
@@ -122,6 +123,13 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 UavcanNode::~UavcanNode()
 {
 	print_info();
+	mavlink_log_critical(&_mavlink_log_pub, "tm:%llu,s:%llu+%llu,r:%llu,g:%llu,a:%llu",
+		hrt_elapsed_time(&_ttDevice._initTime)/1000,  _ttDevice._sendCnt, _myFrameListener._sendCnt,
+		_myFrameListener._redRcvCnt, _myFrameListener._gpsRcvCnt, _myFrameListener._anonymRcvCnt);
+
+	mavlink_log_critical(&_mavlink_log_pub, "min:%llu,max:%llu,rmin:%llu,rmax:%llu,gmin:%llu,gmax:%llu",
+		_myFrameListener._minIval, _myFrameListener._maxIval, _myFrameListener._redMinIval,
+		_myFrameListener._redMaxIval, _myFrameListener._gpsMinIval, _myFrameListener._gpsMaxIval);
 	fw_server(Stop);
 
 	if (_task != -1) {
@@ -666,6 +674,11 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	// init other devices
 	ret = _ttDevice.init();
+	_myFrameListener = RxFrameListener();
+	_myFrameListener._node_id = _node.getNodeID().get();
+	_myFrameListener.init(&_ttDevice);
+	_node.getDispatcher().installRxFrameListener(&_myFrameListener);
+
 	if (ret < 0) {
 		PX4_ERR("cannot init ttDevice '%s' (%d)", _ttDevice.get_name(), ret);
 		return ret;

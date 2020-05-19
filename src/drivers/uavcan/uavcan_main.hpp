@@ -70,6 +70,8 @@
 #include "allocator.hpp"
 
 #include "other/tt_device.hpp"
+#include <uORB/topics/mavlink_log.h>
+
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 
@@ -194,6 +196,8 @@ private:
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 
 	TtDevice			_ttDevice;
+	RxFrameListener _myFrameListener;
+	orb_advert_t _mavlink_log_pub{nullptr};
 
 	MixerGroup			*_mixers = nullptr;
 	ITxQueueInjector		*_tx_injector;
