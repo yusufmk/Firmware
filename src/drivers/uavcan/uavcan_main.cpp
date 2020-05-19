@@ -121,7 +121,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 
 UavcanNode::~UavcanNode()
 {
-
+	print_info();
 	fw_server(Stop);
 
 	if (_task != -1) {

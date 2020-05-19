@@ -9,32 +9,67 @@
 #pragma once
 
 #include <px4_module_params.h>
+#include <drivers/drv_hrt.h>
+#include <px4_defines.h>
+#include <px4_log.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/yusuf_message.h>
+#include <uORB/topics/mavlink_log.h>
 
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/safety/ArmingStatus.hpp>
 
-#include <px4_defines.h>
 
 class RxFrameListener : public uavcan::IRxFrameListener
 {
 public:
 	~RxFrameListener()
- 	{
+	{
 
- 	}
-
-	void handleRxFrame(const uavcan::CanRxFrame& frame,
-		uavcan::CanIOFlags flags) override
-    	{
-
-		PX4_INFO("frame.id:%d, frame.dlc:%d, frame.data[0]:%d, frame.data[1]:%d, frame.data[2]:%d, frame.data[3]:%d, frame.data[4]:%d, frame.data[5]:%d, frame.data[6]:%d, frame.data[7]:%d",
-			frame.id, frame.dlc, frame.data[0],
-			frame.data[1], frame.data[2], frame.data[3], frame.data[4], frame.data[5],
-			frame.data[6], frame.data[7]);
 	}
+
+	void handleRxFrame(const uavcan::CanRxFrame &frame,
+			   uavcan::CanIOFlags flags) override
+	{
+		uint8_t srcId = frame.id & 127;
+		// uint8_t msgOrService = (frame.id >> 7) & 1;
+		// uint16_t msgId;
+		// uint16_t disc = 0;
+		// uint8_t prio = (frame.id >> 24) & 31;
+		// uint8_t other = (frame.id >> 29) & 7;
+		// if (srcId == 0)
+		// {
+		// 	msgId = (frame.id >> 8) & 3;
+		// 	disc = (frame.id >> 10) & 16383;
+		// }
+		// else
+		// {
+		// 	msgId = (frame.id >> 8) & 65535;
+		// }
+
+		if (srcId == 0) {
+			_anonymRcvCnt++;
+
+		} else if (srcId == 125) {
+			_gpsRcvCnt++;
+
+		} else if (srcId == _node_id) {
+			_sendCnt++;
+
+		} else {
+			_redRcvCnt++;
+		}
+
+		// PX4_INFO("frameId: %X, other:%d, prio:%3d, disc:%5d, msgId:%4d  msgOrServ:%d  srcId:%3d  dlc:%d, d[0]:%2X, d[1]:%2X, d[2]:%2X, d[3]:%2X, d[4]:%2X, d[5]:%2X, d[6]:%2X, d[7]:%2X",
+		// 	frame.id, other, prio, disc, msgId, msgOrService, srcId, frame.dlc, frame.data[0], frame.data[1], frame.data[2], frame.data[3], frame.data[4], frame.data[5],
+		// 	frame.data[6], frame.data[7]);
+	}
+	uint32_t 	_node_id;
+	uint64_t 	_sendCnt{0};
+	uint64_t	_redRcvCnt{0};
+	uint64_t	_gpsRcvCnt{0};
+	uint64_t	_anonymRcvCnt{0};
 };
 
 class TtDevice
@@ -88,6 +123,11 @@ private:
 	param_t _sys_id_handle;
 	int32_t _sys_id;
 
+	// DEFINE_PARAMETERS(
+	// 	(ParamInt<px4::params::UAVCAN_NODE_ID>) _param_node_id,
+	// )
+
+
 	param_t _p1_handle;
 	int32_t _p1;
 
@@ -95,11 +135,14 @@ private:
 	int32_t _p2;
 
 	RxFrameListener _myFrameListener;
-	uint8_t _frameId;
-	uint8_t _sobalak;
+	uint32_t _frameId;
+	// uint8_t _sobalak;
 
+	orb_advert_t _mavlink_log_pub{nullptr};
 
-
+	uint32_t 	_node_id;
+	hrt_abstime		_initTime;
+	uint64_t 	_sendCnt{0};
 };
 
 
