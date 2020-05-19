@@ -7,7 +7,7 @@
  */
 
 #pragma once
-
+#include <px4_defines.h>
 #include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
 #include <px4_defines.h>
@@ -152,7 +152,7 @@ private:
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	uint32_t 	_node_id;
-	hrt_abstime		_initTime;
+	hrt_abstime	_initTime;
 	uint64_t 	_sendCnt{0};
 
 };

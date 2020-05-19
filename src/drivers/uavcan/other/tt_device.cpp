@@ -41,8 +41,8 @@ TtDevice::TtDevice(uavcan::INode &node) :
 
 TtDevice::~TtDevice()
 {
-	_send = false;
-	pthread_join(TtDevice::_sender_thread, nullptr);
+	// _send = false;
+	// pthread_join(TtDevice::_sender_thread, nullptr);
 
 	// PX4_INFO("~TtDevice - Elapsed time: %llu, sendCnt: %llu", hrt_elapsed_time(&_initTime), _sendCnt);
 	mavlink_log_critical(&_mavlink_log_pub, "tm:%llu,s:%llu+%llu,r:%llu,g:%llu,a:%llu",
@@ -157,26 +157,28 @@ void *TtDevice::sender_function(unsigned int senderDelay)
 {
 	while (_send) {
 		px4_usleep(senderDelay);
+		PX4_INFO("threadin icinden selamlar!?");
 
-		for (uint8_t i = 0; i < 1; i++) {
-			// uint8_t tailByte = _frameId | _sobalak;
+		// for (uint8_t i = 0; i < 1; i++) {
+		// 	// uint8_t tailByte = _frameId | _sobalak;
 
-			uint8_t myData[] = {i, (uint8_t) _sendCnt};
-			uint32_t msgId = 0xABCD;
-			uint32_t prio = uavcan::TransferPriority::Default.get();
-			_frameId = ((uint32_t)4U << 29U) | (prio << 24U) | (msgId << 8U) | (_node_id);
-			uavcan::CanFrame myCanFrame{_frameId, myData, 2};
-			uavcan::MonotonicTime myMonTime = uavcan::MonotonicTime::fromMSec(100);
+		// 	uint8_t myData[] = {i, (uint8_t) _sendCnt};
+		// 	uint32_t msgId = 0xABCD;
+		// 	uint32_t prio = uavcan::TransferPriority::Default.get();
+		// 	_frameId = ((uint32_t)4U << 29U) | (prio << 24U) | (msgId << 8U) | (_node_id);
+		// 	uavcan::CanFrame myCanFrame{_frameId, myData, 2};
+		// 	uavcan::MonotonicTime myMonTime = uavcan::MonotonicTime::fromMSec(100);
 
-			int result = _node.injectTxFrame(myCanFrame, myMonTime, (uavcan::uint8_t)1U);
+		// 	int result = _node.injectTxFrame(myCanFrame, myMonTime, (uavcan::uint8_t)1U);
 
-			if (result > 0) {
-				_sendCnt += result;
-			}
+		// 	if (result > 0) {
+		// 		_sendCnt += result;
+		// 	}
 
-			// _node.injectTxFrame(myCanFrame,myMonTime,(uavcan::uint8_t)1U);
-			// PX4_INFO("inject yapildi, result: %d, tailByte:%d", result, tailByte);
-		}
+		// 	// _node.injectTxFrame(myCanFrame,myMonTime,(uavcan::uint8_t)1U);
+		// 	// PX4_INFO("inject yapildi, result: %d, tailByte:%d", result, tailByte);
+		// }
+
 	}
 
 
@@ -198,16 +200,17 @@ void *TtDevice::start_helper(void* context)
 
 void TtDevice::devStart(uavcan::INode& node)
 {
-	pthread_attr_t sender_attr;
-	pthread_attr_init(&sender_attr);
+	// pthread_attr_t sender_attr;
+	// pthread_attr_init(&sender_attr);
 
-	struct sched_param param;
-	(void)pthread_attr_getschedparam(&sender_attr, &param);
-	param.sched_priority = SCHED_PRIORITY_MAX - 80;
-	(void)pthread_attr_setschedparam(&sender_attr, &param);
+	// struct sched_param param;
+	// (void)pthread_attr_getschedparam(&sender_attr, &param);
+	// param.sched_priority = SCHED_PRIORITY_FAST_DRIVER;
+	// (void)pthread_attr_setschedparam(&sender_attr, &param);
 
-	pthread_attr_setstacksize(&sender_attr, PX4_STACK_ADJUSTED(2840));
-	pthread_create(&(TtDevice::_sender_thread), &sender_attr, TtDevice::start_helper, (void *)&node);
+	// pthread_attr_setstacksize(&sender_attr, PX4_STACK_ADJUSTED(2840));
+	// pthread_create(&(TtDevice::_sender_thread), &sender_attr, TtDevice::start_helper, (void *)&node);
+	pthread_create(&(TtDevice::_sender_thread), nullptr, TtDevice::start_helper, (void *)&node);
 
-	pthread_attr_destroy(&sender_attr);
+	// pthread_attr_destroy(&sender_attr);
 }
