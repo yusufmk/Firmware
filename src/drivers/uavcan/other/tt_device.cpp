@@ -15,6 +15,8 @@
 // #include "blah.hpp"
 
 const char *const TtDevice::NAME = "redundantUKB";
+pthread_t TtDevice::_sender_thread = pthread_t{};
+bool	TtDevice::_send = true;
 
 TtDevice::TtDevice(uavcan::INode &node) :
 	_node(node),
@@ -39,10 +41,13 @@ TtDevice::TtDevice(uavcan::INode &node) :
 
 TtDevice::~TtDevice()
 {
+	_send = false;
+	pthread_join(TtDevice::_sender_thread, nullptr);
+
 	// PX4_INFO("~TtDevice - Elapsed time: %llu, sendCnt: %llu", hrt_elapsed_time(&_initTime), _sendCnt);
 	mavlink_log_critical(&_mavlink_log_pub, "tm:%llu,s:%llu+%llu,r:%llu,g:%llu,a:%llu",
-		hrt_elapsed_time(&_initTime)/1000,  _sendCnt, _myFrameListener._sendCnt,
-		_myFrameListener._redRcvCnt, _myFrameListener._gpsRcvCnt, _myFrameListener._anonymRcvCnt);
+			     hrt_elapsed_time(&_initTime) / 1000,  _sendCnt, _myFrameListener._sendCnt,
+			     _myFrameListener._redRcvCnt, _myFrameListener._gpsRcvCnt, _myFrameListener._anonymRcvCnt);
 
 	(void) orb_unsubscribe(_yusuf_message_sub);
 	// delete(_myFrameListener);
@@ -52,14 +57,13 @@ int TtDevice::init()
 {
 	int res = _canPub_armStat.init(uavcan::TransferPriority::NumericallyMin);
 
-	if (res < 0)
-	{
+	if (res < 0) {
 		PX4_WARN("arming status CAN publication failed %i", res);
 	}
 
 	res = _canSub_armStat.start(ArmStatCbBinder(this, &TtDevice::armStat_cb));
-	if (res < 0)
-	{
+
+	if (res < 0) {
 		PX4_WARN("arming status CAN subscription failed %i", res);
 	}
 
@@ -70,10 +74,10 @@ int TtDevice::init()
 	_myFrameListener = RxFrameListener();
 	_myFrameListener._node_id = _node_id;
 
-
 	PX4_INFO("TtDevice init:%llu", _initTime);
-	_param_to_uavcan_pub_timer.startPeriodic(
-		uavcan::MonotonicDuration::fromUSec(10000U));
+	// _param_to_uavcan_pub_timer.startPeriodic(
+	// 	uavcan::MonotonicDuration::fromUSec(10000U));
+
 
 
 	_node.getDispatcher().installRxFrameListener(&_myFrameListener);
@@ -89,7 +93,8 @@ void TtDevice::armStat_cb(const uavcan::ReceivedDataStructure<uavcan::equipment:
 	// orb_publish_auto(ORB_ID(yusuf_message), &_yusuf_message_pub,
 	// 	&_benim_mesaj, &orb_instance, ORB_PRIO_DEFAULT);
 
-	PX4_INFO("armStat_cb icine girdi, gelen veri: %d, src node id: %d, this.sys_id: %d", msg.status, msg.getSrcNodeID().get(), _sys_id);
+	PX4_INFO("armStat_cb icine girdi, gelen veri: %d, src node id: %d, this.sys_id: %d", msg.status,
+		 msg.getSrcNodeID().get(), _sys_id);
 	_p2 = msg.status;
 	param_set(_p2_handle, &_p2);
 	// Doing less time critical stuff here
@@ -111,8 +116,7 @@ void TtDevice::broadcast_from_param(const uavcan::TimerEvent &)
 	// (void) _canPub_armStat.broadcast(msg);
 	// PX4_INFO("canPub_armStat yayınlandı. yayınlanan veri: %d", msg.status);
 
-	for (uint8_t i = 0; i < 1; i++)
-	{
+	for (uint8_t i = 0; i < 1; i++) {
 		// uint8_t tailByte = _frameId | _sobalak;
 
 		uint8_t myData[] = {i, (uint8_t) _sendCnt};
@@ -122,9 +126,9 @@ void TtDevice::broadcast_from_param(const uavcan::TimerEvent &)
 		uavcan::CanFrame myCanFrame{_frameId, myData, 2};
 		uavcan::MonotonicTime myMonTime = uavcan::MonotonicTime::fromMSec(100);
 
-		int result = _node.injectTxFrame(myCanFrame,myMonTime,(uavcan::uint8_t)1U);
-		if (result > 0)
-		{
+		int result = _node.injectTxFrame(myCanFrame, myMonTime, (uavcan::uint8_t)1U);
+
+		if (result > 0) {
 			_sendCnt += result;
 		}
 
@@ -147,4 +151,63 @@ void TtDevice::print_status()
 	// 		printf("channel %d: empty\n", i);
 	// 	}
 	// }
+}
+
+void *TtDevice::sender_function(unsigned int senderDelay)
+{
+	while (_send) {
+		px4_usleep(senderDelay);
+
+		for (uint8_t i = 0; i < 1; i++) {
+			// uint8_t tailByte = _frameId | _sobalak;
+
+			uint8_t myData[] = {i, (uint8_t) _sendCnt};
+			uint32_t msgId = 0xABCD;
+			uint32_t prio = uavcan::TransferPriority::Default.get();
+			_frameId = ((uint32_t)4U << 29U) | (prio << 24U) | (msgId << 8U) | (_node_id);
+			uavcan::CanFrame myCanFrame{_frameId, myData, 2};
+			uavcan::MonotonicTime myMonTime = uavcan::MonotonicTime::fromMSec(100);
+
+			int result = _node.injectTxFrame(myCanFrame, myMonTime, (uavcan::uint8_t)1U);
+
+			if (result > 0) {
+				_sendCnt += result;
+			}
+
+			// _node.injectTxFrame(myCanFrame,myMonTime,(uavcan::uint8_t)1U);
+			// PX4_INFO("inject yapildi, result: %d, tailByte:%d", result, tailByte);
+		}
+	}
+
+
+	return nullptr;
+}
+
+void *TtDevice::start_helper(void* context)
+{
+	uavcan::INode *asdf = (uavcan::INode*)context;
+	TtDevice *myTtDev = new TtDevice((uavcan::INode &)*asdf);
+	myTtDev->init();
+
+	void *ret = myTtDev->sender_function(100000U);
+
+	delete myTtDev;
+
+	return ret;
+}
+
+void TtDevice::devStart(uavcan::INode& node)
+{
+	pthread_attr_t sender_attr;
+	pthread_attr_init(&sender_attr);
+
+	struct sched_param param;
+	(void)pthread_attr_getschedparam(&sender_attr, &param);
+	param.sched_priority = SCHED_PRIORITY_MAX - 80;
+	(void)pthread_attr_setschedparam(&sender_attr, &param);
+
+	pthread_attr_setstacksize(&sender_attr, PX4_STACK_ADJUSTED(2840));
+	pthread_create(&(TtDevice::_sender_thread), &sender_attr, TtDevice::start_helper, (void *)&node);
+
+	pthread_attr_destroy(&sender_attr);
 }

@@ -193,7 +193,7 @@ private:
 
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 
-	TtDevice			_ttDevice;
+	// TtDevice			_ttDevice;
 
 	MixerGroup			*_mixers = nullptr;
 	ITxQueueInjector		*_tx_injector;

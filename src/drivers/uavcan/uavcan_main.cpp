@@ -85,7 +85,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
-	_ttDevice(_node),
+	// _ttDevice(_node),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "uavcan control latency")),
 	_master_timer(_node),
 	_setget_response(0)
@@ -121,6 +121,8 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 
 UavcanNode::~UavcanNode()
 {
+	TtDevice::_send = false;
+	pthread_join(TtDevice::_sender_thread, nullptr);
 	print_info();
 	fw_server(Stop);
 
@@ -665,15 +667,16 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	}
 
 	// init other devices
-	ret = _ttDevice.init();
-	if (ret < 0) {
-		PX4_ERR("cannot init ttDevice '%s' (%d)", _ttDevice.get_name(), ret);
-		return ret;
-	}
-	else
-	{
-		PX4_INFO("ttDevice basariyla baslatildi.");
-	}
+	// ret = _ttDevice.init();
+	// if (ret < 0) {
+	// 	PX4_ERR("cannot init ttDevice '%s' (%d)", _ttDevice.get_name(), ret);
+	// 	return ret;
+	// }
+	// else
+	// {
+	// 	PX4_INFO("ttDevice basariyla baslatildi.");
+	// }
+	TtDevice::devStart(_node);
 
 
 	/*  Start the Node   */
@@ -1245,9 +1248,9 @@ UavcanNode::print_info()
 	}
 
 	// other devices
-	printf("Other device '%s':\n", _ttDevice.get_name());
-	_ttDevice.print_status();
-	printf("\n");
+	// printf("Other device '%s':\n", _ttDevice.get_name());
+	// _ttDevice.print_status();
+	// printf("\n");
 
 	// Printing all nodes that are online
 	std::printf("Online nodes (Node ID, Health, Mode):\n");

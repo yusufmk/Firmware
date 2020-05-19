@@ -20,6 +20,9 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/safety/ArmingStatus.hpp>
 
+#include <pthread.h>
+#include <px4_tasks.h>
+#include <px4_posix.h>
 
 class RxFrameListener : public uavcan::IRxFrameListener
 {
@@ -88,6 +91,15 @@ public:
 
 	void print_status();
 
+	static bool	_send;
+
+	static void 	devStart(uavcan::INode& node);
+	static void* 	start_helper(void * context);
+	static pthread_t _sender_thread;
+
+	void* sender_function(unsigned int senderDelay);
+
+
 private:
 	/**
 	 * armStatus message will be reported via this callback.
@@ -95,7 +107,6 @@ private:
 	void armStat_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::safety::ArmingStatus> &msg);
 
 	void broadcast_from_param(const uavcan::TimerEvent &);
-
 
 
 	typedef uavcan::MethodBinder <TtDevice *,
@@ -143,6 +154,7 @@ private:
 	uint32_t 	_node_id;
 	hrt_abstime		_initTime;
 	uint64_t 	_sendCnt{0};
+
 };
 
 
