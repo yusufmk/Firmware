@@ -44,6 +44,10 @@ TtDevice::~TtDevice()
 		hrt_elapsed_time(&_initTime)/1000,  _sendCnt, _myFrameListener._sendCnt,
 		_myFrameListener._redRcvCnt, _myFrameListener._gpsRcvCnt, _myFrameListener._anonymRcvCnt);
 
+	mavlink_log_critical(&_mavlink_log_pub, "min:%llu,max:%llu,rmin:%llu,rmax:%llu,gmin:%llu,gmax:%llu",
+		_myFrameListener._minIval, _myFrameListener._maxIval, _myFrameListener._redMinIval,
+		_myFrameListener._redMaxIval, _myFrameListener._gpsMinIval, _myFrameListener._gpsMaxIval);
+
 	(void) orb_unsubscribe(_yusuf_message_sub);
 	// delete(_myFrameListener);
 }
@@ -72,8 +76,13 @@ int TtDevice::init()
 
 
 	PX4_INFO("TtDevice init:%llu", _initTime);
-	_param_to_uavcan_pub_timer.startPeriodic(
-		uavcan::MonotonicDuration::fromUSec(10000U));
+	if (_p1 > 1000)
+	{
+		_param_to_uavcan_pub_timer.startPeriodic(
+			uavcan::MonotonicDuration::fromUSec((uint64_t)_p1));
+	}
+
+
 
 
 	_node.getDispatcher().installRxFrameListener(&_myFrameListener);
@@ -111,15 +120,15 @@ void TtDevice::broadcast_from_param(const uavcan::TimerEvent &)
 	// (void) _canPub_armStat.broadcast(msg);
 	// PX4_INFO("canPub_armStat yayınlandı. yayınlanan veri: %d", msg.status);
 
-	for (uint8_t i = 0; i < 1; i++)
+	for (uint8_t i = 0; i < _p2; i++)
 	{
 		// uint8_t tailByte = _frameId | _sobalak;
 
-		uint8_t myData[] = {i, (uint8_t) _sendCnt};
+		uint8_t myData[] = {i, (uint8_t) _sendCnt, (uint8_t)rand()};
 		uint32_t msgId = 0xABCD;
-		uint32_t prio = uavcan::TransferPriority::Default.get();
+		uint32_t prio = uavcan::TransferPriority::OneLowerThanHighest.get();
 		_frameId = ((uint32_t)4U << 29U) | (prio << 24U) | (msgId << 8U) | (_node_id);
-		uavcan::CanFrame myCanFrame{_frameId, myData, 2};
+		uavcan::CanFrame myCanFrame{_frameId, myData, 3};
 		uavcan::MonotonicTime myMonTime = uavcan::MonotonicTime::fromMSec(100);
 
 		int result = _node.injectTxFrame(myCanFrame,myMonTime,(uavcan::uint8_t)1U);
@@ -127,7 +136,7 @@ void TtDevice::broadcast_from_param(const uavcan::TimerEvent &)
 		{
 			_sendCnt += result;
 		}
-
+		px4_usleep(5);
 		// _node.injectTxFrame(myCanFrame,myMonTime,(uavcan::uint8_t)1U);
 		// PX4_INFO("inject yapildi, result: %d, tailByte:%d", result, tailByte);
 	}

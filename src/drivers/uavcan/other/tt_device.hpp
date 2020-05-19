@@ -32,6 +32,14 @@ public:
 	void handleRxFrame(const uavcan::CanRxFrame &frame,
 			   uavcan::CanIOFlags flags) override
 	{
+		if (_prevTimestamp != 0)
+		{
+			_diff = hrt_elapsed_time(&_prevTimestamp);
+			_minIval = _diff < _minIval ? _diff : _minIval;
+			_maxIval = _diff > _maxIval ? _diff : _maxIval;
+		}
+		_prevTimestamp = hrt_absolute_time();
+
 		uint8_t srcId = frame.id & 127;
 		// uint8_t msgOrService = (frame.id >> 7) & 1;
 		// uint16_t msgId;
@@ -53,12 +61,26 @@ public:
 
 		} else if (srcId == 125) {
 			_gpsRcvCnt++;
+			if (_lastGpsTime != 0)
+			{
+				_diff = hrt_elapsed_time(&_lastGpsTime);
+				_gpsMaxIval = _diff > _gpsMaxIval ? _diff : _gpsMaxIval;
+				_gpsMinIval = _diff < _gpsMinIval ? _diff : _gpsMinIval;
+			}
+			_lastGpsTime = hrt_absolute_time();
 
 		} else if (srcId == _node_id) {
 			_sendCnt++;
 
 		} else {
 			_redRcvCnt++;
+			if (_lastRedTime != 0)
+			{
+				_diff = hrt_elapsed_time(&_lastRedTime);
+				_redMaxIval = _diff > _redMaxIval ? _diff : _redMaxIval;
+				_redMinIval = _diff < _redMinIval ? _diff : _redMinIval;
+			}
+			_lastRedTime = hrt_absolute_time();
 		}
 
 		// PX4_INFO("frameId: %X, other:%d, prio:%3d, disc:%5d, msgId:%4d  msgOrServ:%d  srcId:%3d  dlc:%d, d[0]:%2X, d[1]:%2X, d[2]:%2X, d[3]:%2X, d[4]:%2X, d[5]:%2X, d[6]:%2X, d[7]:%2X",
@@ -70,6 +92,21 @@ public:
 	uint64_t	_redRcvCnt{0};
 	uint64_t	_gpsRcvCnt{0};
 	uint64_t	_anonymRcvCnt{0};
+
+	hrt_abstime	_lastRedTime{0};
+	hrt_abstime	_redMinIval{9999999};
+	hrt_abstime	_redMaxIval{0};
+
+	hrt_abstime	_lastGpsTime{0};
+	hrt_abstime	_gpsMinIval{9999999};
+	hrt_abstime	_gpsMaxIval{0};
+
+	hrt_abstime	_currTimestamp{0};
+	hrt_abstime	_prevTimestamp{0};
+	hrt_abstime	_minIval{9999999};
+	hrt_abstime	_maxIval{0};
+
+	hrt_abstime	_diff{0};
 };
 
 class TtDevice
