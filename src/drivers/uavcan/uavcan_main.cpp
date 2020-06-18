@@ -959,6 +959,9 @@ int UavcanNode::run()
 			}
 
 			// Output to the bus
+			//
+			// YUSUF !!!! KENDI ESC DRIVERIMIZIN UPDATE OUTPUTS FONKSIYONUNU BURADA CAGIRACAGIM.
+			//
 			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
 			_outputs.timestamp = hrt_absolute_time();
 
