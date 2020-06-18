@@ -5,6 +5,9 @@
  *
  * @author M.Yusuf Korkut
  */
+
+#pragma once
+
 #include <uavcan/uavcan.hpp>
 #include <perf/perf_counter.h>
 
@@ -18,7 +21,7 @@
 class mgm_hbc
 {
 public:
-	mgm_hbc(uavcan::INode &node, uint8_t comAddr);
+	mgm_hbc(uavcan::INode &node);
 	~mgm_hbc();
 	int init();
 
@@ -29,10 +32,7 @@ public:
 
 	// bunlarin hepsi void, error handling icin biseyler uygulayabilir miyiz?
 	void handle_message(const uavcan::CanRxFrame *frame);
-	void handle_message_packet1(const uint8_t *data);
-	void handle_message_packet2(const uint8_t *data);
-	void handle_message_packet3(const uint8_t *data);
-	void handle_message_packet4(const uint8_t *data);
+
 
 	// bu fonk, tt_device icinde bir callback olarak ayarlanabilir.
 	// yani actuator_controls mesaji yayinlaninca otomatik bu fonk cagrilir mesela.
@@ -41,11 +41,13 @@ public:
 	// YA DA
 	// bu sınıfı scheduledworkitem ya da module yapabiliriz. run fonksiyonu bu olur.
 	// boylelikle tt_device'tan bagimsiz oluruz.
-	void send_thrl_cmd(int16_t thrl_cmd);
-
-	uint8_t _P15_com_add; // 240, 224, 208, 192, 176, 160, 144, 128 olabilir.
+	void send_thrl_cmd(int16_t thrl_cmd, const int escInd);
 
 private:
+	void handle_message_packet1(const uint8_t *data, const int escInd);
+	void handle_message_packet2(const uint8_t *data, const int escInd);
+	void handle_message_packet3(const uint8_t *data, const int escInd);
+	void handle_message_packet4(const uint8_t *data, const int escInd);
 	/**
 	 * ESC status will be published to ORB from this callback (fixed rate).
 	 */
@@ -54,11 +56,16 @@ private:
 	bool		_armed = false;
 	bool		_run_at_idle_throttle_when_armed = false;
 	esc_status_s	_esc_status = {};
+	uint32_t 	_armed_mask = 0;
 
-	uavcan::MonotonicTime _prev_cmd_pub;   ///< rate limiting
 	uavcan::INode &_node;
+	uavcan::MonotonicTime _prev_cmd_pub;   ///< rate limiting
+	typedef uavcan::MethodBinder<mgm_hbc *, void (mgm_hbc::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 	uavcan::TimerEventForwarder<TimerCbBinder>	_orb_timer;
 	uavcan::MonotonicTime _tx_deadline;
+
+	orb_advert_t	_esc_status_pub = nullptr;
+	orb_advert_t 	_actuator_outputs_pub = nullptr;
 
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
@@ -91,7 +98,5 @@ private:
 	static constexpr uint16_t OTHER_HW_ERR = 0x0800;
 
 	// BULLSHIT CONSTANTS
-	static constexpr uint32_t BS = 0x14A10000U;
-
-
-}
+	static constexpr uint32_t BS = 0x14A10000U | (1U << 31);
+};
